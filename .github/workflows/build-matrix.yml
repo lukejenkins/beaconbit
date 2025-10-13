@@ -1,0 +1,49 @@
+name: Build matrix
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - board: "ESP32-D0WD-V3"
+            idf_target: "esp32"
+          - board: "ESP32-C3-DevKitM-1"
+            idf_target: "esp32c3"
+          - board: "ESP32-S3-DevKitC-1"
+            idf_target: "esp32s3"
+          - board: "ESP32-C6-DevKitM-1"
+            idf_target: "esp32c6"
+          - board: "ESP32-C61-DevKitC-1"
+            idf_target: "esp32c6"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup ESP-IDF
+        uses: espressif/setup-esp-idf@v3
+        with:
+          idf: v5.5.1
+
+      - name: Show target
+        run: |
+          echo "Building for ${matrix.idf_target} (${matrix.board})"
+
+      - name: Set IDF target
+        run: |
+          echo "IDF_TARGET=${{ matrix.idf_target }}" >> $GITHUB_ENV
+
+      - name: Build
+        run: |
+          idf.py fullclean || true
+          idf.py build
+
+      - name: Run audit
+        run: |
+          python3 tools/audit_target_api.py

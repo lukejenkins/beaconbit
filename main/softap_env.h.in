@@ -1,0 +1,7 @@
+#pragma once
+
+// Generated from .env or default. String literal.
+#define DEFAULT_SSID_PREFIX_TEMPLATE "@DEFAULT_PREFIX@"
+
+// Default authentication mode (WPA2_PSK, WPA3_PSK, or WPA3-SAE)
+#define DEFAULT_AUTH_MODE "@DEFAULT_AUTH_MODE@"
