@@ -43,6 +43,10 @@ The configuration is stored in NVS under the namespace `softap_cfg` as a JSON ob
 idf.py erase-flash
 ```
 
+## Issues
+
+- [ ] ESP32 seems to be stuck on wpa3
+
 ## To-Do
 
 - [ ] Add a web server to serve a configuration page for runtime configuration changes.
