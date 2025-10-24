@@ -11,6 +11,7 @@
 #include "lwip/err.h"
 #include "lwip/sys.h"
 #include "softap_config.h"
+#include "softap_webserver.h"
 
 /* The examples use WiFi configuration that you can set via project configuration menu.
 
@@ -120,4 +121,10 @@ void app_main(void)
 
     ESP_LOGI(TAG, "ESP_WIFI_MODE_AP");
     wifi_init_softap();
+
+    // Start the web server
+    ret = softap_webserver_start();
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to start web server");
+    }
 }

@@ -43,20 +43,89 @@ The configuration is stored in NVS under the namespace `softap_cfg` as a JSON ob
 idf.py erase-flash
 ```
 
+### Web Server Configuration Interface
+
+The project includes a built-in web server that provides a user-friendly interface to view the current SoftAP configuration.
+
+#### Accessing the Web Interface
+
+1. **Connect to the ESP32's WiFi network** using the SSID shown in the serial output
+2. **Open a web browser** and navigate to: `http://192.168.4.1/`
+3. **View the configuration** displayed in a responsive, styled table
+
+#### Features
+
+- **Web UI** (`/`): Displays all current configuration settings including:
+  - SSID and authentication mode
+  - Channel and bandwidth
+  - Maximum connections
+  - GTK rekey interval
+  - Password (masked for security)
+
+- **JSON API** (`/api/config`): Returns configuration as JSON for programmatic access
+
+  ```json
+  {
+    "ssid": "ESP32-XXXX",
+    "has_password": true,
+    "channel": 1,
+    "bandwidth": 1,
+    "max_connection": 4,
+    "auth_mode": 3,
+    "gtk_rekey_interval": 600
+  }
+  ```
+
+The web interface is responsive and works well on both desktop and mobile devices.
+
 ## Issues
 
 - [ ] ESP32 seems to be stuck on wpa3
 
-## To-Do
+## Completed Features
 
-- [ ] Add a web server to serve a configuration page for runtime configuration changes.
-- [ ] Add a captive portal to redirect clients to the configuration page upon connection.
-- [ ] Add a command-line interface (CLI) for configuration via serial console.
-- [ ] Add RSSI display for connected clients via web server.
-- [ ] Add RSSI display for connected clients via CLI.
-- [ ] Add a mechanism to save configuration changes persistently.
-- [ ] Add a mechanism to reset configuration to defaults.
-- [ ] Add support for IPv6.
-- [ ] Add support for event logging (e.g., client connect/disconnect events).
-- [ ] Add support for monitoring and displaying connected clients (e.g., via web server or CLI).
-- [ ] Add support for multiple SSIDs (if hardware supports it).
+- [x] Web server for viewing configuration
+- [x] JSON API endpoint for programmatic access
+- [x] NVS-based persistent configuration storage
+- [x] WPA2/WPA3 authentication support
+- [x] Protected Management Frames (PMF)
+- [x] GTK rekeying support
+- [x] Environment variable-based default configuration
+- [x] MAC address-based SSID generation
+
+## To-Do / Roadmap
+
+### High Priority
+
+- [ ] Add web form for editing configuration via web interface
+  - Input fields for SSID, password, channel, etc.
+  - Save to NVS functionality
+  - Apply changes without restart (if possible)
+- [ ] Add captive portal to redirect clients to the configuration page upon connection
+- [ ] Add "Reset to Defaults" button in web interface
+
+### Medium Priority
+
+- [ ] Add monitoring and display of connected clients
+  - Show MAC addresses, connection time, IP addresses
+  - Display via web interface
+- [ ] Add RSSI (signal strength) display for connected clients
+- [ ] Add event logging system
+  - Client connect/disconnect events with timestamps
+  - Configuration change history
+  - Viewable via web interface
+- [ ] Speed testing services to measure throughput of the connected clients
+  - [ ] iperf server
+  - [ ] Web interface for speed tests
+
+### Low Priority / Future Enhancements
+
+- [ ] Add command-line interface (CLI) for configuration via serial console
+- [ ] Add support for IPv6
+- [ ] Add support for multiple SSIDs (if hardware supports it)
+- [ ] Add mDNS support for easy discovery (e.g., `http://esp32-config.local`)
+
+### No plans to implement
+
+- ~~[ ]~~ Security enhancements (e.g., HTTPS for web server, password for web interface).
+  - The current use case for this device does not necessitate security for the web interface.
