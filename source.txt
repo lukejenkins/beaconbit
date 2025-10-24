@@ -1,1 +1,0 @@
-source /Users/ljenkins/esp/v5.5.1/esp-idf/export.sh
