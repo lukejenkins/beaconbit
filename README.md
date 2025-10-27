@@ -29,10 +29,15 @@ Example `.env` file:
 
 ```env
 DEFAULT_SSID_PREFIX_TEMPLATE="MyAP-XXXX"
-DEFAULT_AUTH_MODE="WPA3_PSK"
+DEFAULT_AUTH_MODE="WPA2_PSK"  # or "WPA3_PSK"
 ```
 
-**Note**: WPA3 requires `CONFIG_ESP_WIFI_SOFTAP_SAE_SUPPORT` to be enabled in `sdkconfig`. Enable this via `idf.py menuconfig` under `Component config` → `Wi-Fi` → `Enable SAE support`.
+**Authentication Mode Behavior**:
+
+- The authentication mode is **runtime-configurable** via NVS and is independent of the SDK configuration
+- If you request WPA3 (either via `.env` default or NVS configuration) but `CONFIG_ESP_WIFI_SOFTAP_SAE_SUPPORT` is not enabled in `sdkconfig`, the firmware will automatically fall back to WPA2-PSK with a warning in the logs
+- To enable WPA3 support, use `idf.py menuconfig` → `Component config` → `Wi-Fi` → `Enable SAE support`
+- The actual authentication mode in use is displayed in the startup logs (e.g., `auth:WPA2-PSK` or `auth:WPA3-PSK`)
 
 #### Runtime Configuration via NVS
 
@@ -78,20 +83,16 @@ The project includes a built-in web server that provides a user-friendly interfa
 
 The web interface is responsive and works well on both desktop and mobile devices.
 
-## Issues
+## Issues (Resolved)
 
-- [X] ESP32 was stuck on wpa3
-  - Use case of a simple SSID beacon generator should be WPA2 by default.
-  - Fixed by changing one or more of the following in `sdkconfig`
-    - `- CONFIG_ESP_WIFI_ENABLE_WPA3_SAE=y`
-    - `- CONFIG_ESP_WIFI_ENABLE_SAE_H2E=y`
-    - `- CONFIG_ESP_WIFI_ENABLE_SAE_PK=y`
-    - `- CONFIG_ESP_WIFI_SOFTAP_SAE_SUPPORT=y`
-    - `- CONFIG_ESP_WIFI_ENABLE_WPA3_OWE_STA=y`
-    - `- CONFIG_ESP_WIFI_WPA3_COMPATIBLE_SUPPORT=y`
-    - `+ # CONFIG_ESP_WIFI_ENABLE_WPA3_SAE is not set`
-    - `+ # CONFIG_ESP_WIFI_ENABLE_WPA3_OWE_STA is not set`
-    - `+ # CONFIG_ESP_WIFI_ENABLE_WPA3_SAE is not set`
+- [X] **ESP32 authentication mode configuration decoupled from sdkconfig** (Fixed: Oct 2025)
+  - **Problem**: Auth mode was determined solely by `CONFIG_ESP_WIFI_SOFTAP_SAE_SUPPORT` at compile time, ignoring the NVS configuration
+  - **Solution**: Auth mode is now runtime-configurable via NVS as the primary source of truth
+  - **Behavior**:
+    - Set `DEFAULT_AUTH_MODE="WPA2_PSK"` in `.env` for WPA2 by default
+    - Set `DEFAULT_AUTH_MODE="WPA3_PSK"` in `.env` for WPA3 by default (with automatic fallback to WPA2 if SAE support isn't compiled in)
+    - Change auth mode at runtime by modifying the NVS configuration
+    - The firmware will gracefully fall back to WPA2 if WPA3 is requested but SAE support is not available, logging a clear warning
 
 ## Completed Features
 
@@ -108,6 +109,10 @@ The web interface is responsive and works well on both desktop and mobile device
 
 ### High Priority
 
+- [ ] Add channel selection to the web interface
+  - Allow users to select the Wi-Fi channel for the SoftAP
+  - Update NVS configuration accordingly
+  - If channel is not already set in NVS, set channel to 1, 6, or 11 based on mac address in some way so that each unit has ~33% chance of being on one of those channels
 - [ ] Add additional configurable options to the NVS config.
 - [ ] Add web form for editing configuration via web interface
   - Input fields for everything stored in NVS.
@@ -137,7 +142,7 @@ The web interface is responsive and works well on both desktop and mobile device
 - [ ] Add support for multiple SSIDs (if hardware supports it)
 - [ ] Add mDNS support for easy discovery (e.g., `http://esp32-config.local`)
 - [ ] Add WPS Device Name support in SoftAP settings
-- [ ] Add the ability to configure WPA2/WPA3 settings
+- [X] Add the ability to configure WPA2/WPA3 settings independently of sdkconfig
 
 ### No plans to implement
 

@@ -82,20 +82,35 @@ void wifi_init_softap(void)
     wifi_config.ap.channel = cfg.channel;
     strncpy((char *)wifi_config.ap.password, cfg.password, sizeof(wifi_config.ap.password));
     wifi_config.ap.max_connection = cfg.max_connection;
+    
+    // Use auth_mode from configuration (NVS), but verify WPA3 support is available
+    if (cfg.auth_mode == WIFI_AUTH_WPA3_PSK) {
 #ifdef CONFIG_ESP_WIFI_SOFTAP_SAE_SUPPORT
-    wifi_config.ap.authmode = WIFI_AUTH_WPA3_PSK;
-    wifi_config.ap.sae_pwe_h2e = WPA3_SAE_PWE_BOTH;
+        wifi_config.ap.authmode = WIFI_AUTH_WPA3_PSK;
+        wifi_config.ap.sae_pwe_h2e = WPA3_SAE_PWE_BOTH;
+        ESP_LOGI(TAG, "Using WPA3-PSK authentication (SAE support enabled)");
 #else
-    wifi_config.ap.authmode = WIFI_AUTH_WPA2_PSK;
+        // Fall back to WPA2 if WPA3 is configured but SAE support isn't compiled in
+        wifi_config.ap.authmode = WIFI_AUTH_WPA2_PSK;
+        ESP_LOGW(TAG, "WPA3 requested but CONFIG_ESP_WIFI_SOFTAP_SAE_SUPPORT not enabled; falling back to WPA2-PSK");
 #endif
+    } else {
+        // Use WPA2 by default or as explicitly configured
+        wifi_config.ap.authmode = WIFI_AUTH_WPA2_PSK;
+        ESP_LOGI(TAG, "Using WPA2-PSK authentication");
+    }
+    
     wifi_config.ap.pmf_cfg.required = true;
 #ifdef CONFIG_ESP_WIFI_BSS_MAX_IDLE_SUPPORT
     wifi_config.ap.bss_max_idle_cfg.period = WIFI_AP_DEFAULT_MAX_IDLE_PERIOD;
     wifi_config.ap.bss_max_idle_cfg.protected_keep_alive = 1;
 #endif
     wifi_config.ap.gtk_rekey_interval = cfg.gtk_rekey_interval;
+    
+    // Override auth mode for open networks (no password)
     if (cfg.auth_open || strlen(cfg.password) == 0) {
         wifi_config.ap.authmode = WIFI_AUTH_OPEN;
+        ESP_LOGI(TAG, "Using OPEN authentication (no password)");
     }
 
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
@@ -105,8 +120,15 @@ void wifi_init_softap(void)
     ESP_ERROR_CHECK(esp_wifi_start());
 
     // The password being shown in plaintext to the console is an acceptable security risk for this application.
-    ESP_LOGI(TAG, "wifi_init_softap finished. SSID:%s password:%s channel:%d",
-             cfg.ssid, cfg.password, cfg.channel);
+    const char *auth_mode_str = "UNKNOWN";
+    switch (wifi_config.ap.authmode) {
+        case WIFI_AUTH_OPEN:            auth_mode_str = "OPEN"; break;
+        case WIFI_AUTH_WPA2_PSK:        auth_mode_str = "WPA2-PSK"; break;
+        case WIFI_AUTH_WPA3_PSK:        auth_mode_str = "WPA3-PSK"; break;
+        default:                        auth_mode_str = "OTHER"; break;
+    }
+    ESP_LOGI(TAG, "wifi_init_softap finished. SSID:%s password:%s channel:%d auth:%s",
+             cfg.ssid, cfg.password, cfg.channel, auth_mode_str);
 }
 
 void app_main(void)
