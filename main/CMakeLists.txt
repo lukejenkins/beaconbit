@@ -1,5 +1,5 @@
 idf_component_register(SRCS "main.c" "softap_config.c" "softap_webserver.c"
-                    PRIV_REQUIRES esp_wifi nvs_flash esp_http_server espressif__cJSON
+                    PRIV_REQUIRES esp_wifi nvs_flash esp_http_server espressif__cJSON wpa_supplicant
                     INCLUDE_DIRS ".")
 
 # Generate a header from .env (if present) to expose DEFAULT_SSID_PREFIX_TEMPLATE
@@ -29,10 +29,19 @@ if(EXISTS ${ENV_FILE})
     else()
         set(DEFAULT_COUNTRY_CODE "US")
     endif()
+    
+    # Also read DEFAULT_WPS_DEVICE_NAME
+    string(REGEX MATCH "DEFAULT_WPS_DEVICE_NAME[ \t]*=[ \t]*\"([^\"]+)\"" _wps_match ${ENV_CONTENTS})
+    if(_wps_match)
+        string(REGEX REPLACE ".*DEFAULT_WPS_DEVICE_NAME[ \t]*=[ \t]*\"([^\"]+)\".*" "\\1" DEFAULT_WPS_DEVICE_NAME ${ENV_CONTENTS})
+    else()
+        set(DEFAULT_WPS_DEVICE_NAME "ESP32-XXXX")
+    endif()
 else()
     set(DEFAULT_PREFIX "ESP32-XXXX")
     set(DEFAULT_AUTH_MODE "WPA2_PSK")
     set(DEFAULT_COUNTRY_CODE "US")
+    set(DEFAULT_WPS_DEVICE_NAME "ESP32-XXXX")
 endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/softap_env.h.in ${GENERATED_HEADER} @ONLY)

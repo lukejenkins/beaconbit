@@ -56,6 +56,7 @@ esp_err_t softap_config_load(softap_config_t *out_config)
     const cJSON *jssid = cJSON_GetObjectItemCaseSensitive(root, "ssid");
     const cJSON *jpass = cJSON_GetObjectItemCaseSensitive(root, "password");
     const cJSON *jcountry = cJSON_GetObjectItemCaseSensitive(root, "country_code");
+    const cJSON *jwps = cJSON_GetObjectItemCaseSensitive(root, "wps_device_name");
     const cJSON *jchannel = cJSON_GetObjectItemCaseSensitive(root, "channel");
     const cJSON *jmaxconn = cJSON_GetObjectItemCaseSensitive(root, "max_connection");
     const cJSON *jband = cJSON_GetObjectItemCaseSensitive(root, "bandwidth");
@@ -76,6 +77,12 @@ esp_err_t softap_config_load(softap_config_t *out_config)
         // Default to "US" if not specified
         memcpy(out_config->country_code, "US", 2);
         out_config->country_code[2] = '\0';
+    }
+    if (cJSON_IsString(jwps) && (jwps->valuestring != NULL)) {
+        strncpy(out_config->wps_device_name, jwps->valuestring, sizeof(out_config->wps_device_name)-1);
+    } else {
+        // Default to SSID if not specified
+        strncpy(out_config->wps_device_name, out_config->ssid, sizeof(out_config->wps_device_name)-1);
     }
     if (cJSON_IsNumber(jchannel)) {
         out_config->channel = jchannel->valueint;
@@ -136,6 +143,7 @@ esp_err_t softap_config_save(const softap_config_t *config)
     cJSON_AddStringToObject(root, "ssid", config->ssid);
     cJSON_AddStringToObject(root, "password", config->password);
     cJSON_AddStringToObject(root, "country_code", config->country_code);
+    cJSON_AddStringToObject(root, "wps_device_name", config->wps_device_name);
     cJSON_AddNumberToObject(root, "channel", config->channel);
     cJSON_AddNumberToObject(root, "bandwidth", config->bandwidth);
     cJSON_AddNumberToObject(root, "max_connection", config->max_connection);
@@ -224,6 +232,28 @@ void softap_config_generate_default(softap_config_t *out_config)
 #else
     memcpy(out_config->country_code, "US", 2);
     out_config->country_code[2] = '\0';
+#endif
+
+    // Set default WPS device name from environment variable
+    // If not specified, use the same template as SSID
+#ifdef DEFAULT_WPS_DEVICE_NAME
+    const char *wps_tpl = DEFAULT_WPS_DEVICE_NAME;
+    const char *wps_pos = strstr(wps_tpl, "XXXX");
+    if (wps_pos) {
+        // build prefix around XXXX
+        size_t wps_prefix_len = wps_pos - wps_tpl;
+        if (wps_prefix_len >= sizeof(tmp)) wps_prefix_len = sizeof(tmp) - 1;
+        memcpy(tmp, wps_tpl, wps_prefix_len);
+        int n = snprintf(tmp + wps_prefix_len, sizeof(tmp) - wps_prefix_len, "%02X%02X", mac[4], mac[5]);
+        tmp[wps_prefix_len + n] = '\0';
+        strncpy(out_config->wps_device_name, tmp, sizeof(out_config->wps_device_name)-1);
+    } else {
+        // fallback: append last two bytes
+        snprintf(out_config->wps_device_name, sizeof(out_config->wps_device_name), "%s%02X%02X", wps_tpl, mac[4], mac[5]);
+    }
+#else
+    // Default to SSID if not specified
+    strncpy(out_config->wps_device_name, out_config->ssid, sizeof(out_config->wps_device_name)-1);
 #endif
 
     // Select channel based on MAC address for better distribution

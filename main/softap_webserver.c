@@ -133,6 +133,7 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
         "<tr><td class='label'>Max Connections</td><td class='value'>%d</td></tr>"
         "<tr><td class='label'>Authentication Mode</td><td class='value'>%s</td></tr>"
         "<tr><td class='label'>GTK Rekey Interval</td><td class='value'>%d seconds</td></tr>"
+        "<tr><td class='label'>WPS Device Name</td><td class='value'>%s</td></tr>"
         "</table>",
         config.ssid,
         (strlen(config.password) > 0) ? "********" : "(none - open network)",
@@ -141,7 +142,8 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
         bandwidth_to_string(config.bandwidth),
         config.max_connection,
         auth_mode_to_string(config.auth_mode),
-        config.gtk_rekey_interval
+        config.gtk_rekey_interval,
+        config.wps_device_name
     );
 
     httpd_resp_send_chunk(req, buffer, len);
@@ -250,6 +252,7 @@ static esp_err_t api_config_get_handler(httpd_req_t *req) {
     cJSON_AddStringToObject(root, "ssid", config.ssid);
     cJSON_AddBoolToObject(root, "has_password", strlen(config.password) > 0);
     cJSON_AddStringToObject(root, "country_code", config.country_code);
+    cJSON_AddStringToObject(root, "wps_device_name", config.wps_device_name);
     cJSON_AddNumberToObject(root, "channel", config.channel);
     cJSON_AddNumberToObject(root, "bandwidth", config.bandwidth);
     cJSON_AddNumberToObject(root, "max_connection", config.max_connection);

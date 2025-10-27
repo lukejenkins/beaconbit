@@ -5,6 +5,7 @@
 #include "esp_wifi.h"
 #include "esp_event.h"
 #include "esp_log.h"
+#include "esp_wps.h"
 #include "sdkconfig.h"
 #include "nvs_flash.h"
 
@@ -42,6 +43,21 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,
         wifi_event_ap_stadisconnected_t* event = (wifi_event_ap_stadisconnected_t*) event_data;
         ESP_LOGI(TAG, "station "MACSTR" leave, AID=%d, reason=%d",
                  MAC2STR(event->mac), event->aid, event->reason);
+    } else if (event_id == WIFI_EVENT_AP_WPS_RG_SUCCESS) {
+        wifi_event_ap_wps_rg_success_t *evt = (wifi_event_ap_wps_rg_success_t *)event_data;
+        ESP_LOGI(TAG, "WPS: station "MACSTR" WPS successful",
+                 MAC2STR(evt->peer_macaddr));
+    } else if (event_id == WIFI_EVENT_AP_WPS_RG_FAILED) {
+        wifi_event_ap_wps_rg_fail_reason_t *evt = (wifi_event_ap_wps_rg_fail_reason_t *)event_data;
+        ESP_LOGI(TAG, "WPS: station "MACSTR" WPS failed, reason=%d",
+                 MAC2STR(evt->peer_macaddr), evt->reason);
+    } else if (event_id == WIFI_EVENT_AP_WPS_RG_TIMEOUT) {
+        ESP_LOGI(TAG, "WPS: registration timeout");
+    } else if (event_id == WIFI_EVENT_AP_WPS_RG_PIN) {
+        wifi_event_ap_wps_rg_pin_t* event = (wifi_event_ap_wps_rg_pin_t *) event_data;
+        ESP_LOGI(TAG, "WPS: PIN = %c%c%c%c%c%c%c%c",
+                 event->pin_code[0], event->pin_code[1], event->pin_code[2], event->pin_code[3],
+                 event->pin_code[4], event->pin_code[5], event->pin_code[6], event->pin_code[7]);
     }
 }
 
@@ -82,6 +98,10 @@ void wifi_init_softap(void)
     wifi_config.ap.channel = cfg.channel;
     strncpy((char *)wifi_config.ap.password, cfg.password, sizeof(wifi_config.ap.password));
     wifi_config.ap.max_connection = cfg.max_connection;
+    
+    // Note: WPS device name is stored in NVS and displayed in web UI, but ESP-IDF's
+    // wifi_ap_config_t doesn't have a direct field for it. The device name is primarily
+    // used for display/documentation purposes in the web interface.
     
     // Use auth_mode from configuration (NVS), but verify WPA3 support is available
     if (cfg.auth_mode == WIFI_AUTH_WPA3_PSK) {
@@ -141,6 +161,36 @@ void wifi_init_softap(void)
     
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
+
+    // Initialize and start WPS with device name from configuration
+    esp_wps_config_t wps_config = WPS_CONFIG_INIT_DEFAULT(WPS_TYPE_PBC);
+    
+    // Set device name from our configuration
+    strncpy(wps_config.factory_info.device_name, cfg.wps_device_name, 
+            WPS_MAX_DEVICE_NAME_LEN - 1);
+    wps_config.factory_info.device_name[WPS_MAX_DEVICE_NAME_LEN - 1] = '\0';
+    
+    // Set manufacturer and model information
+    strncpy(wps_config.factory_info.manufacturer, "ESPRESSIF", 
+            WPS_MAX_MANUFACTURER_LEN - 1);
+    strncpy(wps_config.factory_info.model_number, CONFIG_IDF_TARGET, 
+            WPS_MAX_MODEL_NUMBER_LEN - 1);
+    strncpy(wps_config.factory_info.model_name, "ESP SoftAP", 
+            WPS_MAX_MODEL_NAME_LEN - 1);
+    
+    esp_err_t wps_err = esp_wifi_ap_wps_enable(&wps_config);
+    if (wps_err == ESP_OK) {
+        ESP_LOGI(TAG, "WPS enabled with device name: %s", cfg.wps_device_name);
+        // Start WPS in PBC (Push Button Configuration) mode
+        wps_err = esp_wifi_ap_wps_start(NULL);
+        if (wps_err == ESP_OK) {
+            ESP_LOGI(TAG, "WPS started in PBC mode");
+        } else {
+            ESP_LOGW(TAG, "Failed to start WPS: %s", esp_err_to_name(wps_err));
+        }
+    } else {
+        ESP_LOGW(TAG, "Failed to enable WPS: %s", esp_err_to_name(wps_err));
+    }
 
     // The password being shown in plaintext to the console is an acceptable security risk for this application.
     const char *auth_mode_str = "UNKNOWN";

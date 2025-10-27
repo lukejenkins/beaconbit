@@ -4,6 +4,16 @@ This is an expansion of the abilities of the original Wi-Fi SoftAP example provi
 
 ## How to use example
 
+### Prerequisites
+
+This project requires certain ESP-IDF SDK configuration options to be enabled. These are automatically applied via the `sdkconfig.defaults` file:
+
+- **`CONFIG_ESP_WIFI_SOFTAP_SUPPORT=y`**: Enable SoftAP mode support
+- **`CONFIG_ESP_WIFI_WPS_SOFTAP_REGISTRAR=y`**: Enable WPS (Wi-Fi Protected Setup) support for broadcasting device information in beacons
+- **`CONFIG_ESP_WIFI_SOFTAP_SAE_SUPPORT=y`** (optional): Enable WPA3-PSK/SAE support - firmware will fall back to WPA2 if not enabled
+
+The `sdkconfig.defaults` file ensures these settings are applied automatically when you build the project. If you need to modify SDK settings, you can use `idf.py menuconfig`.
+
 SoftAP supports Protected Management Frames(PMF). Necessary configurations can be set using pmf flags. Please refer [Wifi-Security](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/wifi-security.html) for more info.
 
 ### Configuration
@@ -36,7 +46,7 @@ DEFAULT_AUTH_MODE="WPA2_PSK"  # or "WPA3_PSK"
 
 - The authentication mode is **runtime-configurable** via NVS and is independent of the SDK configuration
 - If you request WPA3 (either via `.env` default or NVS configuration) but `CONFIG_ESP_WIFI_SOFTAP_SAE_SUPPORT` is not enabled in `sdkconfig`, the firmware will automatically fall back to WPA2-PSK with a warning in the logs
-- To enable WPA3 support, use `idf.py menuconfig` → `Component config` → `Wi-Fi` → `Enable SAE support`
+- To enable WPA3 support permanently, uncomment the line in `sdkconfig.defaults` or use `idf.py menuconfig` → `Component config` → `Wi-Fi` → `Enable SAE support`
 - The actual authentication mode in use is displayed in the startup logs (e.g., `auth:WPA2-PSK` or `auth:WPA3-PSK`)
 
 #### Runtime Configuration via NVS
@@ -113,12 +123,19 @@ The web interface is responsive and works well on both desktop and mobile device
   - Add to NVS configuration items
   - Set country code in SoftAP settings
   - Add an example to .env.example
+- [X] Add WPS (Wi-Fi Protected Setup) support in SoftAP mode
+  - WPS Device Name configurable via NVS and .env file
+  - WPS Information Elements broadcast in beacons
+  - PBC (Push Button Configuration) mode enabled
+  - WPS factory information (manufacturer, model, device name)
+  - Display device name in web interface and JSON API
+  - Automatic fallback if WPS not enabled in SDK config
+  - Event handlers for WPS connection/timeout/failure
 
 ## To-Do / Roadmap
 
 ### High Priority
 
-- [ ] Add WPS Device Name support in SoftAP settings
 - [ ] Add additional configurable options to the NVS config.
 - [ ] Add web form for editing configuration via web interface
   - Input fields for everything stored in NVS.

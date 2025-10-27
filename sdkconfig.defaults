@@ -1,0 +1,27 @@
+# ESP32 SoftAP Project - Default SDK Configuration
+# This file specifies required Kconfig options for the project to build and function correctly.
+# These settings will be automatically applied when running 'idf.py set-target' or on first build.
+
+# WiFi SoftAP Support
+CONFIG_ESP_WIFI_SOFTAP_SUPPORT=y
+
+# WPS (Wi-Fi Protected Setup) Support for SoftAP mode
+# Required for WPS device name to be broadcast in Information Elements
+# and for WPS PBC (Push Button Configuration) functionality
+CONFIG_ESP_WIFI_WPS_SOFTAP_REGISTRAR=y
+
+# WPA3-SAE Support (optional but recommended)
+# Enable this if you want to use WPA3-PSK authentication mode
+# Can be overridden - firmware will gracefully fall back to WPA2 if not enabled
+# CONFIG_ESP_WIFI_SOFTAP_SAE_SUPPORT=y
+
+# HTTP Server Support
+CONFIG_HTTPD_MAX_REQ_HDR_LEN=1024
+CONFIG_HTTPD_MAX_URI_LEN=512
+
+# NVS (Non-Volatile Storage) Support
+CONFIG_NVS_ENCRYPTION=n
+
+# Partition Table
+# Default partition table should work, but can be customized if needed
+# CONFIG_PARTITION_TABLE_SINGLE_APP=y
