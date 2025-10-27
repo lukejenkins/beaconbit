@@ -80,3 +80,5 @@ Temporary Items
 .env
 
 managed_components/espressif__cJSON/
+
+compile_commands.json

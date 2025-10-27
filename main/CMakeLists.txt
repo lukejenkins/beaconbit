@@ -21,9 +21,18 @@ if(EXISTS ${ENV_FILE})
     else()
         set(DEFAULT_AUTH_MODE "WPA2_PSK")
     endif()
+    
+    # Also read DEFAULT_COUNTRY_CODE
+    string(REGEX MATCH "DEFAULT_COUNTRY_CODE[ \t]*=[ \t]*\"([^\"]+)\"" _country_match ${ENV_CONTENTS})
+    if(_country_match)
+        string(REGEX REPLACE ".*DEFAULT_COUNTRY_CODE[ \t]*=[ \t]*\"([^\"]+)\".*" "\\1" DEFAULT_COUNTRY_CODE ${ENV_CONTENTS})
+    else()
+        set(DEFAULT_COUNTRY_CODE "US")
+    endif()
 else()
     set(DEFAULT_PREFIX "ESP32-XXXX")
     set(DEFAULT_AUTH_MODE "WPA2_PSK")
+    set(DEFAULT_COUNTRY_CODE "US")
 endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/softap_env.h.in ${GENERATED_HEADER} @ONLY)

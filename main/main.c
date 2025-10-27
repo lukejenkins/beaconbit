@@ -116,6 +116,29 @@ void wifi_init_softap(void)
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
     // Set channel width from configuration (persisted)
     ESP_ERROR_CHECK(esp_wifi_set_bandwidth(WIFI_IF_AP, cfg.bandwidth));
+    
+    // Set country code for regulatory domain
+    wifi_country_t country = {
+        .cc = {cfg.country_code[0], cfg.country_code[1], 0},
+        .schan = 1,          // Start channel
+        .nchan = 13,         // Number of channels (1-13 for most countries, 1-11 for US/Canada)
+        .policy = WIFI_COUNTRY_POLICY_AUTO
+    };
+    
+    // Adjust channel count for specific countries
+    if (strcmp(cfg.country_code, "US") == 0 || strcmp(cfg.country_code, "CA") == 0) {
+        country.nchan = 11;  // US and Canada use channels 1-11
+    } else if (strcmp(cfg.country_code, "JP") == 0) {
+        country.nchan = 14;  // Japan can use channels 1-14 (14 is special case)
+    }
+    
+    esp_err_t country_err = esp_wifi_set_country(&country);
+    if (country_err == ESP_OK) {
+        ESP_LOGI(TAG, "Country code set to: %s (channels %d-%d)", cfg.country_code, country.schan, country.nchan);
+    } else {
+        ESP_LOGW(TAG, "Failed to set country code %s: %s", cfg.country_code, esp_err_to_name(country_err));
+    }
+    
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
 
@@ -127,8 +150,8 @@ void wifi_init_softap(void)
         case WIFI_AUTH_WPA3_PSK:        auth_mode_str = "WPA3-PSK"; break;
         default:                        auth_mode_str = "OTHER"; break;
     }
-    ESP_LOGI(TAG, "wifi_init_softap finished. SSID:%s password:%s channel:%d auth:%s",
-             cfg.ssid, cfg.password, cfg.channel, auth_mode_str);
+    ESP_LOGI(TAG, "wifi_init_softap finished. SSID:%s password:%s channel:%d country:%s auth:%s",
+             cfg.ssid, cfg.password, cfg.channel, cfg.country_code, auth_mode_str);
 }
 
 void app_main(void)

@@ -9,6 +9,7 @@
 typedef struct {
     char ssid[33];
     char password[65];
+    char country_code[3]; // ISO 3166-1 alpha-2 country code (e.g., "US", "JP", "DE")
     int channel;
     int max_connection;
     int gtk_rekey_interval;

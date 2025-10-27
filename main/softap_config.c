@@ -55,6 +55,7 @@ esp_err_t softap_config_load(softap_config_t *out_config)
 
     const cJSON *jssid = cJSON_GetObjectItemCaseSensitive(root, "ssid");
     const cJSON *jpass = cJSON_GetObjectItemCaseSensitive(root, "password");
+    const cJSON *jcountry = cJSON_GetObjectItemCaseSensitive(root, "country_code");
     const cJSON *jchannel = cJSON_GetObjectItemCaseSensitive(root, "channel");
     const cJSON *jmaxconn = cJSON_GetObjectItemCaseSensitive(root, "max_connection");
     const cJSON *jband = cJSON_GetObjectItemCaseSensitive(root, "bandwidth");
@@ -67,6 +68,14 @@ esp_err_t softap_config_load(softap_config_t *out_config)
     }
     if (cJSON_IsString(jpass) && (jpass->valuestring != NULL)) {
         strncpy(out_config->password, jpass->valuestring, sizeof(out_config->password)-1);
+    }
+    if (cJSON_IsString(jcountry) && (jcountry->valuestring != NULL)) {
+        strncpy(out_config->country_code, jcountry->valuestring, sizeof(out_config->country_code)-1);
+        out_config->country_code[sizeof(out_config->country_code)-1] = '\0';
+    } else {
+        // Default to "US" if not specified
+        memcpy(out_config->country_code, "US", 2);
+        out_config->country_code[2] = '\0';
     }
     if (cJSON_IsNumber(jchannel)) {
         out_config->channel = jchannel->valueint;
@@ -126,6 +135,7 @@ esp_err_t softap_config_save(const softap_config_t *config)
 
     cJSON_AddStringToObject(root, "ssid", config->ssid);
     cJSON_AddStringToObject(root, "password", config->password);
+    cJSON_AddStringToObject(root, "country_code", config->country_code);
     cJSON_AddNumberToObject(root, "channel", config->channel);
     cJSON_AddNumberToObject(root, "bandwidth", config->bandwidth);
     cJSON_AddNumberToObject(root, "max_connection", config->max_connection);
@@ -205,6 +215,15 @@ void softap_config_generate_default(softap_config_t *out_config)
     }
 #else
     out_config->auth_mode = WIFI_AUTH_WPA2_PSK;
+#endif
+
+    // Set default country code from environment variable
+#ifdef DEFAULT_COUNTRY_CODE
+    strncpy(out_config->country_code, DEFAULT_COUNTRY_CODE, sizeof(out_config->country_code)-1);
+    out_config->country_code[sizeof(out_config->country_code)-1] = '\0';
+#else
+    memcpy(out_config->country_code, "US", 2);
+    out_config->country_code[2] = '\0';
 #endif
 
     // Select channel based on MAC address for better distribution

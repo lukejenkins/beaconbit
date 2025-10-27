@@ -127,6 +127,7 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
         "<tr><th>Setting</th><th>Value</th></tr>"
         "<tr><td class='label'>SSID</td><td class='value'>%s</td></tr>"
         "<tr><td class='label'>Password</td><td class='value'>%s</td></tr>"
+        "<tr><td class='label'>Country Code</td><td class='value'>%s</td></tr>"
         "<tr><td class='label'>Channel</td><td class='value'>%d</td></tr>"
         "<tr><td class='label'>Bandwidth</td><td class='value'>%s</td></tr>"
         "<tr><td class='label'>Max Connections</td><td class='value'>%d</td></tr>"
@@ -135,6 +136,7 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
         "</table>",
         config.ssid,
         (strlen(config.password) > 0) ? "********" : "(none - open network)",
+        config.country_code,
         config.channel,
         bandwidth_to_string(config.bandwidth),
         config.max_connection,
@@ -247,6 +249,7 @@ static esp_err_t api_config_get_handler(httpd_req_t *req) {
 
     cJSON_AddStringToObject(root, "ssid", config.ssid);
     cJSON_AddBoolToObject(root, "has_password", strlen(config.password) > 0);
+    cJSON_AddStringToObject(root, "country_code", config.country_code);
     cJSON_AddNumberToObject(root, "channel", config.channel);
     cJSON_AddNumberToObject(root, "bandwidth", config.bandwidth);
     cJSON_AddNumberToObject(root, "max_connection", config.max_connection);

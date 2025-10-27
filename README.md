@@ -109,11 +109,16 @@ The web interface is responsive and works well on both desktop and mobile device
   - Update NVS configuration via POST API
   - MAC-based default channel assignment (1, 6, or 11) for better distribution
   - Channels 1, 6, and 11 marked as recommended (non-overlapping)
+- [X] Add 802.11 country code information element support
+  - Add to NVS configuration items
+  - Set country code in SoftAP settings
+  - Add an example to .env.example
 
 ## To-Do / Roadmap
 
 ### High Priority
 
+- [ ] Add WPS Device Name support in SoftAP settings
 - [ ] Add additional configurable options to the NVS config.
 - [ ] Add web form for editing configuration via web interface
   - Input fields for everything stored in NVS.
@@ -142,7 +147,9 @@ The web interface is responsive and works well on both desktop and mobile device
 - [ ] Add support for IPv6
 - [ ] Add support for multiple SSIDs (if hardware supports it)
 - [ ] Add mDNS support for easy discovery (e.g., `http://esp32-config.local`)
-- [ ] Add WPS Device Name support in SoftAP settings
+- [ ] Add OTA (Over-The-Air) updates for firmware
+- [ ] Add support for setting the default SoftAP channel in the .env file.
+  - If there isn't a setting in the `.env` file, the channel will be set based on the last byte of the MAC address modulo 3, which maps to channels 1, 6, or 11.
 
 ### No plans to implement
 

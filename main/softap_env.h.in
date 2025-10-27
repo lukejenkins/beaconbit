@@ -5,3 +5,6 @@
 
 // Default authentication mode (WPA2_PSK, WPA3_PSK, or WPA3-SAE)
 #define DEFAULT_AUTH_MODE "@DEFAULT_AUTH_MODE@"
+
+// Default country code (ISO 3166-1 alpha-2, e.g., "US", "JP", "DE")
+#define DEFAULT_COUNTRY_CODE "@DEFAULT_COUNTRY_CODE@"
