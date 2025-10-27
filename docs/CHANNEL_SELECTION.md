@@ -11,21 +11,25 @@ This document describes the WiFi channel selection feature implementation for th
 When a device boots for the first time (no NVS configuration exists), it automatically selects a WiFi channel based on its MAC address. This ensures an even distribution of devices across the three non-overlapping 2.4GHz WiFi channels (1, 6, and 11).
 
 **Algorithm:**
+
 - Uses the last byte of the MAC address modulo 3
 - Maps results to channels: 0 → Channel 1, 1 → Channel 6, 2 → Channel 11
 - Simple and effective: provides ~33% distribution per channel
 
 **Implementation Location:**
+
 - `main/softap_config.c` - `softap_config_generate_default()` function
 
 **Testing:**
 A test program was created to validate the distribution algorithm:
+
 - Location: `tools/test_channel_selection.c`
 - Tested against 21 real MAC addresses (17 unique)
 - Results: 29.4% on Channel 1, 29.4% on Channel 6, 41.2% on Channel 11
 - Distribution is reasonably balanced across the three channels
 
 To run the test:
+
 ```bash
 cd tools
 gcc -o test_channel_selection test_channel_selection.c
@@ -37,6 +41,7 @@ gcc -o test_channel_selection test_channel_selection.c
 Users can now change the WiFi channel through the web interface without reflashing firmware.
 
 **Features:**
+
 - Dropdown menu with all 2.4GHz channels (1-13)
 - Channels 1, 6, and 11 marked as "Recommended" (non-overlapping)
 - Frequency display for each channel
@@ -44,6 +49,7 @@ Users can now change the WiFi channel through the web interface without reflashi
 - Automatic page reload after successful update
 
 **Implementation Details:**
+
 - HTML form with channel dropdown
 - JavaScript handles form submission via fetch API
 - POST request to `/api/config` endpoint
@@ -52,13 +58,15 @@ Users can now change the WiFi channel through the web interface without reflashi
 
 ### 3. API Endpoint for Configuration Updates
 
-**POST /api/config**
+**POST /api/config :**
+
 - Accepts JSON payload with configuration parameters
 - Currently supports channel updates
 - Validates channel range (1-13)
 - Saves to NVS and returns success/error message
 
 **Example Request:**
+
 ```bash
 curl -X POST http://192.168.4.1/api/config \
   -H "Content-Type: application/json" \
@@ -66,6 +74,7 @@ curl -X POST http://192.168.4.1/api/config \
 ```
 
 **Example Response:**
+
 ```json
 {
   "success": true,
@@ -78,6 +87,7 @@ curl -X POST http://192.168.4.1/api/config \
 In the 2.4GHz WiFi band, channels overlap with adjacent channels. Channels 1, 6, and 11 are the only three channels that don't overlap with each other, making them ideal for minimizing interference in environments with multiple access points.
 
 **Channel Spacing:**
+
 - Each channel is 5 MHz apart in frequency
 - Each channel uses 22 MHz bandwidth
 - Channels 1, 6, and 11 are separated by 25 MHz, preventing overlap
