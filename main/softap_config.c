@@ -161,7 +161,7 @@ void softap_config_generate_default(softap_config_t *out_config)
     // Generation rules (assumptions):
     // - SSID: "ESP32-" + last 3 bytes of MAC
     // - Password: empty (open) if a compile-time flag allows, else random-ish based on MAC
-    // - Channel: 1
+    // - Channel: 1, 6, or 11 based on MAC address (for better distribution)
     // - max_connection: 4
     // - gtk_rekey_interval: 0
 
@@ -207,7 +207,13 @@ void softap_config_generate_default(softap_config_t *out_config)
     out_config->auth_mode = WIFI_AUTH_WPA2_PSK;
 #endif
 
-    out_config->channel = 1;
+    // Select channel based on MAC address for better distribution
+    // Use last byte modulo 3 to map to channels 1, 6, or 11
+    // These are the three non-overlapping channels in 2.4GHz band
+    const int channels[] = {1, 6, 11};
+    int channel_index = mac[5] % 3;
+    out_config->channel = channels[channel_index];
+
     out_config->bandwidth = WIFI_BW_HT20;
     out_config->max_connection = 4;
     out_config->gtk_rekey_interval = 0;

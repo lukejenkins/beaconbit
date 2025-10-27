@@ -34,6 +34,16 @@ static const char html_header[] =
     ".value { color: #333; font-family: monospace; }"
     ".footer { margin-top: 30px; text-align: center; color: #999; font-size: 0.9em; }"
     ".info-box { background-color: #e7f3ff; border-left: 4px solid #2196F3; padding: 15px; margin: 20px 0; }"
+    ".form-group { margin: 15px 0; }"
+    ".form-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }"
+    ".form-group select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }"
+    ".form-group small { display: block; margin-top: 5px; color: #666; }"
+    ".btn { background-color: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }"
+    ".btn:hover { background-color: #45a049; }"
+    ".btn:disabled { background-color: #ccc; cursor: not-allowed; }"
+    ".message { padding: 10px; margin: 10px 0; border-radius: 4px; }"
+    ".message.success { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }"
+    ".message.error { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }"
     "</style>"
     "</head>"
     "<body>"
@@ -103,12 +113,12 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
     const char info_box[] =
         "<div class='info-box'>"
         "<strong>Note:</strong> This page displays the current configuration stored in NVS. "
-        "Configuration editing will be available in a future update."
+        "You can now update the WiFi channel below."
         "</div>";
     httpd_resp_send_chunk(req, info_box, strlen(info_box));
 
     /* Build configuration table */
-    char buffer[1024];
+    char buffer[2048];
     int len;
 
     len = snprintf(buffer, sizeof(buffer),
@@ -130,6 +140,77 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
         config.max_connection,
         auth_mode_to_string(config.auth_mode),
         config.gtk_rekey_interval
+    );
+
+    httpd_resp_send_chunk(req, buffer, len);
+
+    /* Channel selection form */
+    len = snprintf(buffer, sizeof(buffer),
+        "<h2>Update Configuration</h2>"
+        "<div id='message'></div>"
+        "<form id='channelForm'>"
+        "<div class='form-group'>"
+        "<label for='channel'>WiFi Channel</label>"
+        "<select id='channel' name='channel'>"
+        "<option value='1'%s>1 (2.412 GHz) - Recommended</option>"
+        "<option value='2'%s>2 (2.417 GHz)</option>"
+        "<option value='3'%s>3 (2.422 GHz)</option>"
+        "<option value='4'%s>4 (2.427 GHz)</option>"
+        "<option value='5'%s>5 (2.432 GHz)</option>"
+        "<option value='6'%s>6 (2.437 GHz) - Recommended</option>"
+        "<option value='7'%s>7 (2.442 GHz)</option>"
+        "<option value='8'%s>8 (2.447 GHz)</option>"
+        "<option value='9'%s>9 (2.452 GHz)</option>"
+        "<option value='10'%s>10 (2.457 GHz)</option>"
+        "<option value='11'%s>11 (2.462 GHz) - Recommended</option>"
+        "<option value='12'%s>12 (2.467 GHz)</option>"
+        "<option value='13'%s>13 (2.472 GHz)</option>"
+        "</select>"
+        "<small>Channels 1, 6, and 11 are recommended as they don't overlap. Device will need to restart for changes to take effect.</small>"
+        "</div>"
+        "<button type='submit' class='btn' id='submitBtn'>Update Channel</button>"
+        "</form>"
+        "<script>"
+        "document.getElementById('channel').value='%d';"
+        "document.getElementById('channelForm').onsubmit=function(e){"
+        "e.preventDefault();"
+        "var btn=document.getElementById('submitBtn');"
+        "btn.disabled=true;"
+        "btn.textContent='Updating...';"
+        "var channel=parseInt(document.getElementById('channel').value);"
+        "fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({channel:channel})})"
+        ".then(r=>r.json())"
+        ".then(data=>{"
+        "var msg=document.getElementById('message');"
+        "msg.className='message success';"
+        "msg.textContent=data.message||'Configuration updated successfully!';"
+        "btn.disabled=false;"
+        "btn.textContent='Update Channel';"
+        "setTimeout(()=>{location.reload();},2000);"
+        "})"
+        ".catch(err=>{"
+        "var msg=document.getElementById('message');"
+        "msg.className='message error';"
+        "msg.textContent='Failed to update configuration: '+err.message;"
+        "btn.disabled=false;"
+        "btn.textContent='Update Channel';"
+        "});"
+        "};"
+        "</script>",
+        (config.channel == 1) ? " selected" : "",
+        (config.channel == 2) ? " selected" : "",
+        (config.channel == 3) ? " selected" : "",
+        (config.channel == 4) ? " selected" : "",
+        (config.channel == 5) ? " selected" : "",
+        (config.channel == 6) ? " selected" : "",
+        (config.channel == 7) ? " selected" : "",
+        (config.channel == 8) ? " selected" : "",
+        (config.channel == 9) ? " selected" : "",
+        (config.channel == 10) ? " selected" : "",
+        (config.channel == 11) ? " selected" : "",
+        (config.channel == 12) ? " selected" : "",
+        (config.channel == 13) ? " selected" : "",
+        config.channel
     );
 
     httpd_resp_send_chunk(req, buffer, len);
@@ -189,6 +270,78 @@ static esp_err_t api_config_get_handler(httpd_req_t *req) {
     return ESP_OK;
 }
 
+/**
+ * @brief Handler for POST /api/config - updates configuration
+ */
+static esp_err_t api_config_post_handler(httpd_req_t *req) {
+    char content[512];
+    int ret;
+    int remaining = req->content_len;
+
+    if (remaining >= sizeof(content)) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Content too large");
+        return ESP_FAIL;
+    }
+
+    ret = httpd_req_recv(req, content, remaining);
+    if (ret <= 0) {
+        if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
+            httpd_resp_send_408(req);
+        }
+        return ESP_FAIL;
+    }
+    content[ret] = '\0';
+
+    // Parse JSON
+    cJSON *root = cJSON_Parse(content);
+    if (root == NULL) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
+        return ESP_FAIL;
+    }
+
+    // Load current config
+    softap_config_t config;
+    esp_err_t err = softap_config_load(&config);
+    if (err != ESP_OK) {
+        cJSON_Delete(root);
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to load current config");
+        return ESP_FAIL;
+    }
+
+    // Update channel if provided
+    const cJSON *jchannel = cJSON_GetObjectItemCaseSensitive(root, "channel");
+    if (cJSON_IsNumber(jchannel)) {
+        int new_channel = jchannel->valueint;
+        // Validate channel (1-13 for 2.4GHz, but we recommend 1, 6, 11)
+        if (new_channel >= 1 && new_channel <= 13) {
+            config.channel = new_channel;
+            ESP_LOGI(TAG, "Updated channel to %d", config.channel);
+        } else {
+            cJSON_Delete(root);
+            httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid channel (must be 1-13)");
+            return ESP_FAIL;
+        }
+    }
+
+    cJSON_Delete(root);
+
+    // Save updated config
+    err = softap_config_save(&config);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to save config: %s", esp_err_to_name(err));
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to save configuration");
+        return ESP_FAIL;
+    }
+
+    // Send success response
+    httpd_resp_set_type(req, "application/json");
+    const char *resp = "{\"success\":true,\"message\":\"Configuration updated. Restart required for changes to take effect.\"}";
+    httpd_resp_send(req, resp, strlen(resp));
+
+    ESP_LOGI(TAG, "Configuration updated successfully");
+    return ESP_OK;
+}
+
 /* URI handler for root */
 static const httpd_uri_t root_uri = {
     .uri       = "/",
@@ -202,6 +355,14 @@ static const httpd_uri_t api_config_uri = {
     .uri       = "/api/config",
     .method    = HTTP_GET,
     .handler   = api_config_get_handler,
+    .user_ctx  = NULL
+};
+
+/* URI handler for API config POST endpoint */
+static const httpd_uri_t api_config_post_uri = {
+    .uri       = "/api/config",
+    .method    = HTTP_POST,
+    .handler   = api_config_post_handler,
     .user_ctx  = NULL
 };
 
@@ -227,6 +388,7 @@ esp_err_t softap_webserver_start(void) {
     /* Register URI handlers */
     httpd_register_uri_handler(server, &root_uri);
     httpd_register_uri_handler(server, &api_config_uri);
+    httpd_register_uri_handler(server, &api_config_post_uri);
 
     ESP_LOGI(TAG, "Web server started successfully");
     ESP_LOGI(TAG, "Access the configuration page at http://<ESP32_IP>/");

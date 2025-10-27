@@ -104,15 +104,16 @@ The web interface is responsive and works well on both desktop and mobile device
 - [X] GTK rekeying support
 - [X] Environment variable-based default configuration
 - [X] MAC address-based SSID generation
+- [X] Channel selection via web interface
+  - Web form for selecting WiFi channel (1-13)
+  - Update NVS configuration via POST API
+  - MAC-based default channel assignment (1, 6, or 11) for better distribution
+  - Channels 1, 6, and 11 marked as recommended (non-overlapping)
 
 ## To-Do / Roadmap
 
 ### High Priority
 
-- [ ] Add channel selection to the web interface
-  - Allow users to select the Wi-Fi channel for the SoftAP
-  - Update NVS configuration accordingly
-  - If channel is not already set in NVS, set channel to 1, 6, or 11 based on mac address in some way so that each unit has ~33% chance of being on one of those channels
 - [ ] Add additional configurable options to the NVS config.
 - [ ] Add web form for editing configuration via web interface
   - Input fields for everything stored in NVS.
@@ -142,7 +143,6 @@ The web interface is responsive and works well on both desktop and mobile device
 - [ ] Add support for multiple SSIDs (if hardware supports it)
 - [ ] Add mDNS support for easy discovery (e.g., `http://esp32-config.local`)
 - [ ] Add WPS Device Name support in SoftAP settings
-- [X] Add the ability to configure WPA2/WPA3 settings independently of sdkconfig
 
 ### No plans to implement
 
