@@ -125,12 +125,14 @@ The web interface is responsive and works well on both desktop and mobile device
   - Add an example to .env.example
 - [X] Add WPS (Wi-Fi Protected Setup) support in SoftAP mode
   - WPS Device Name configurable via NVS and .env file
-  - WPS Information Elements broadcast in beacons
+  - **Custom vendor-specific IE** added to beacon frames with device name
+  - Standard WPS IEs in probe responses (full device information)
   - PBC (Push Button Configuration) mode enabled
   - WPS factory information (manufacturer, model, device name)
   - Display device name in web interface and JSON API
   - Automatic fallback if WPS not enabled in SDK config
   - Event handlers for WPS connection/timeout/failure
+  - See `docs/WPS_BEACON_IE.md` for technical details on beacon frame IEs
 
 ## To-Do / Roadmap
 

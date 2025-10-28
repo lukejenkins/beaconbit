@@ -16,6 +16,8 @@ typedef struct {
     int gtk_rekey_interval;
     int bandwidth; // use WIFI_BW_* values (stored as int)
     bool auth_open;
+    bool wps_enabled; // Enable WPS (Wi-Fi Protected Setup)
+    bool apname_ie_enabled; // Enable Alcatel-Lucent AP Name vendor IE in beacons
     wifi_auth_mode_t auth_mode; // WIFI_AUTH_WPA2_PSK or WIFI_AUTH_WPA3_PSK
 } softap_config_t;
 

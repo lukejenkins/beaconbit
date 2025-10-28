@@ -134,6 +134,8 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
         "<tr><td class='label'>Authentication Mode</td><td class='value'>%s</td></tr>"
         "<tr><td class='label'>GTK Rekey Interval</td><td class='value'>%d seconds</td></tr>"
         "<tr><td class='label'>WPS Device Name</td><td class='value'>%s</td></tr>"
+        "<tr><td class='label'>WPS Enabled</td><td class='value'>%s</td></tr>"
+        "<tr><td class='label'>AP Name IE Enabled</td><td class='value'>%s</td></tr>"
         "</table>",
         config.ssid,
         (strlen(config.password) > 0) ? "********" : "(none - open network)",
@@ -143,7 +145,9 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
         config.max_connection,
         auth_mode_to_string(config.auth_mode),
         config.gtk_rekey_interval,
-        config.wps_device_name
+        config.wps_device_name,
+        config.wps_enabled ? "Yes" : "No",
+        config.apname_ie_enabled ? "Yes" : "No"
     );
 
     httpd_resp_send_chunk(req, buffer, len);
@@ -253,6 +257,8 @@ static esp_err_t api_config_get_handler(httpd_req_t *req) {
     cJSON_AddBoolToObject(root, "has_password", strlen(config.password) > 0);
     cJSON_AddStringToObject(root, "country_code", config.country_code);
     cJSON_AddStringToObject(root, "wps_device_name", config.wps_device_name);
+    cJSON_AddBoolToObject(root, "wps_enabled", config.wps_enabled);
+    cJSON_AddBoolToObject(root, "apname_ie_enabled", config.apname_ie_enabled);
     cJSON_AddNumberToObject(root, "channel", config.channel);
     cJSON_AddNumberToObject(root, "bandwidth", config.bandwidth);
     cJSON_AddNumberToObject(root, "max_connection", config.max_connection);

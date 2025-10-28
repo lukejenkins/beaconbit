@@ -57,6 +57,8 @@ esp_err_t softap_config_load(softap_config_t *out_config)
     const cJSON *jpass = cJSON_GetObjectItemCaseSensitive(root, "password");
     const cJSON *jcountry = cJSON_GetObjectItemCaseSensitive(root, "country_code");
     const cJSON *jwps = cJSON_GetObjectItemCaseSensitive(root, "wps_device_name");
+    const cJSON *jwps_enabled = cJSON_GetObjectItemCaseSensitive(root, "wps_enabled");
+    const cJSON *japname_ie = cJSON_GetObjectItemCaseSensitive(root, "apname_ie_enabled");
     const cJSON *jchannel = cJSON_GetObjectItemCaseSensitive(root, "channel");
     const cJSON *jmaxconn = cJSON_GetObjectItemCaseSensitive(root, "max_connection");
     const cJSON *jband = cJSON_GetObjectItemCaseSensitive(root, "bandwidth");
@@ -83,6 +85,16 @@ esp_err_t softap_config_load(softap_config_t *out_config)
     } else {
         // Default to SSID if not specified
         strncpy(out_config->wps_device_name, out_config->ssid, sizeof(out_config->wps_device_name)-1);
+    }
+    if (cJSON_IsBool(jwps_enabled)) {
+        out_config->wps_enabled = cJSON_IsTrue(jwps_enabled);
+    } else {
+        out_config->wps_enabled = true; // default: enabled
+    }
+    if (cJSON_IsBool(japname_ie)) {
+        out_config->apname_ie_enabled = cJSON_IsTrue(japname_ie);
+    } else {
+        out_config->apname_ie_enabled = true; // default: enabled
     }
     if (cJSON_IsNumber(jchannel)) {
         out_config->channel = jchannel->valueint;
@@ -144,6 +156,8 @@ esp_err_t softap_config_save(const softap_config_t *config)
     cJSON_AddStringToObject(root, "password", config->password);
     cJSON_AddStringToObject(root, "country_code", config->country_code);
     cJSON_AddStringToObject(root, "wps_device_name", config->wps_device_name);
+    cJSON_AddBoolToObject(root, "wps_enabled", config->wps_enabled);
+    cJSON_AddBoolToObject(root, "apname_ie_enabled", config->apname_ie_enabled);
     cJSON_AddNumberToObject(root, "channel", config->channel);
     cJSON_AddNumberToObject(root, "bandwidth", config->bandwidth);
     cJSON_AddNumberToObject(root, "max_connection", config->max_connection);
@@ -254,6 +268,19 @@ void softap_config_generate_default(softap_config_t *out_config)
 #else
     // Default to SSID if not specified
     strncpy(out_config->wps_device_name, out_config->ssid, sizeof(out_config->wps_device_name)-1);
+#endif
+
+    // Set default WPS and AP Name IE enabled flags from environment variables
+#ifdef DEFAULT_WPS_ENABLED
+    out_config->wps_enabled = (strcmp(DEFAULT_WPS_ENABLED, "true") == 0 || strcmp(DEFAULT_WPS_ENABLED, "1") == 0);
+#else
+    out_config->wps_enabled = true; // default: enabled
+#endif
+
+#ifdef DEFAULT_APNAME_IE_ENABLED
+    out_config->apname_ie_enabled = (strcmp(DEFAULT_APNAME_IE_ENABLED, "true") == 0 || strcmp(DEFAULT_APNAME_IE_ENABLED, "1") == 0);
+#else
+    out_config->apname_ie_enabled = true; // default: enabled
 #endif
 
     // Select channel based on MAC address for better distribution

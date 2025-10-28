@@ -162,34 +162,73 @@ void wifi_init_softap(void)
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
 
-    // Initialize and start WPS with device name from configuration
-    esp_wps_config_t wps_config = WPS_CONFIG_INIT_DEFAULT(WPS_TYPE_PBC);
-    
-    // Set device name from our configuration
-    strncpy(wps_config.factory_info.device_name, cfg.wps_device_name, 
-            WPS_MAX_DEVICE_NAME_LEN - 1);
-    wps_config.factory_info.device_name[WPS_MAX_DEVICE_NAME_LEN - 1] = '\0';
-    
-    // Set manufacturer and model information
-    strncpy(wps_config.factory_info.manufacturer, "ESPRESSIF", 
-            WPS_MAX_MANUFACTURER_LEN - 1);
-    strncpy(wps_config.factory_info.model_number, CONFIG_IDF_TARGET, 
-            WPS_MAX_MODEL_NUMBER_LEN - 1);
-    strncpy(wps_config.factory_info.model_name, "ESP SoftAP", 
-            WPS_MAX_MODEL_NAME_LEN - 1);
-    
-    esp_err_t wps_err = esp_wifi_ap_wps_enable(&wps_config);
-    if (wps_err == ESP_OK) {
-        ESP_LOGI(TAG, "WPS enabled with device name: %s", cfg.wps_device_name);
-        // Start WPS in PBC (Push Button Configuration) mode
-        wps_err = esp_wifi_ap_wps_start(NULL);
-        if (wps_err == ESP_OK) {
-            ESP_LOGI(TAG, "WPS started in PBC mode");
+    // Optionally add Alcatel-Lucent AP Name vendor-specific IE to beacons
+    // This supplements the minimal WPS IE in beacons with our device name
+    // Using Alcatel-Lucent OUI (0xDC:08:56) which Wireshark already decodes as "wlan.vs.alcatel.apname"
+    if (cfg.apname_ie_enabled) {
+        size_t device_name_len = strlen(cfg.wps_device_name);
+        size_t total_ie_size = sizeof(vendor_ie_data_t) + device_name_len;
+        uint8_t *device_name_ie = (uint8_t *)malloc(total_ie_size);
+        
+        if (device_name_ie != NULL) {
+            vendor_ie_data_t *vie = (vendor_ie_data_t *)device_name_ie;
+            vie->element_id = WIFI_VENDOR_IE_ELEMENT_ID; // 0xDD
+            vie->length = 4 + device_name_len; // OUI (3) + OUI Type (1) + payload length
+            vie->vendor_oui[0] = 0xDC; // Alcatel-Lucent OUI byte 1
+            vie->vendor_oui[1] = 0x08; // Alcatel-Lucent OUI byte 2
+            vie->vendor_oui[2] = 0x56; // Alcatel-Lucent OUI byte 3
+            vie->vendor_oui_type = 0x01; // Type: AP Name (ALCATEL_APNAME)
+            memcpy(vie->payload, cfg.wps_device_name, device_name_len);
+            
+            esp_err_t ie_err = esp_wifi_set_vendor_ie(true, WIFI_VND_IE_TYPE_BEACON, 
+                                                       WIFI_VND_IE_ID_1, vie);
+            if (ie_err == ESP_OK) {
+                ESP_LOGI(TAG, "Alcatel-Lucent AP Name IE added to beacons: %s", cfg.wps_device_name);
+            } else {
+                ESP_LOGW(TAG, "Failed to add Alcatel-Lucent AP Name IE to beacons: %s", esp_err_to_name(ie_err));
+            }
+            
+            free(device_name_ie);
         } else {
-            ESP_LOGW(TAG, "Failed to start WPS: %s", esp_err_to_name(wps_err));
+            ESP_LOGW(TAG, "Failed to allocate memory for Alcatel-Lucent AP Name IE");
         }
     } else {
-        ESP_LOGW(TAG, "Failed to enable WPS: %s", esp_err_to_name(wps_err));
+        ESP_LOGI(TAG, "Alcatel-Lucent AP Name IE disabled in configuration");
+    }
+
+    // Optionally initialize and start WPS with device name from configuration
+    // Optionally initialize and start WPS with device name from configuration
+    if (cfg.wps_enabled) {
+        esp_wps_config_t wps_config = WPS_CONFIG_INIT_DEFAULT(WPS_TYPE_PBC);
+        
+        // Set device name from our configuration
+        strncpy(wps_config.factory_info.device_name, cfg.wps_device_name, 
+                WPS_MAX_DEVICE_NAME_LEN - 1);
+        wps_config.factory_info.device_name[WPS_MAX_DEVICE_NAME_LEN - 1] = '\0';
+        
+        // Set manufacturer and model information
+        strncpy(wps_config.factory_info.manufacturer, "ESPRESSIF", 
+                WPS_MAX_MANUFACTURER_LEN - 1);
+        strncpy(wps_config.factory_info.model_number, CONFIG_IDF_TARGET, 
+                WPS_MAX_MODEL_NUMBER_LEN - 1);
+        strncpy(wps_config.factory_info.model_name, "ESP SoftAP", 
+                WPS_MAX_MODEL_NAME_LEN - 1);
+        
+        esp_err_t wps_err = esp_wifi_ap_wps_enable(&wps_config);
+        if (wps_err == ESP_OK) {
+            ESP_LOGI(TAG, "WPS enabled with device name: %s", cfg.wps_device_name);
+            // Start WPS in PBC (Push Button Configuration) mode
+            wps_err = esp_wifi_ap_wps_start(NULL);
+            if (wps_err == ESP_OK) {
+                ESP_LOGI(TAG, "WPS started in PBC mode");
+            } else {
+                ESP_LOGW(TAG, "Failed to start WPS: %s", esp_err_to_name(wps_err));
+            }
+        } else {
+            ESP_LOGW(TAG, "Failed to enable WPS: %s", esp_err_to_name(wps_err));
+        }
+    } else {
+        ESP_LOGI(TAG, "WPS disabled in configuration");
     }
 
     // The password being shown in plaintext to the console is an acceptable security risk for this application.
