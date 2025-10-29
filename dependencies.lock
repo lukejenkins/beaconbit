@@ -1,6 +1,7 @@
 dependencies:
   espressif/cJSON:
-    component_hash: 9372811fb197926f522c467627cf4a8e72b681e0366e17879631da801103aef3
+    component_hash: 
+      9372811fb197926f522c467627cf4a8e72b681e0366e17879631da801103aef3
     dependencies:
     - name: idf
       require: private
