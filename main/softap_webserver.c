@@ -119,11 +119,16 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
         "</div>";
     httpd_resp_send_chunk(req, info_box, strlen(info_box));
 
-    /* Build configuration table */
-    char buffer[2048];
+    /* Allocate buffer dynamically to avoid stack overflow */
+    char *buffer = malloc(2048);
+    if (buffer == NULL) {
+        ESP_LOGE(TAG, "Failed to allocate buffer for config page");
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
+        return ESP_FAIL;
+    }
     int len;
 
-    len = snprintf(buffer, sizeof(buffer),
+    len = snprintf(buffer, 2048,
         "<h2>Current Configuration</h2>"
         "<table class='config-table'>"
         "<tr><th>Setting</th><th>Value</th></tr>"
@@ -166,7 +171,7 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
     httpd_resp_send_chunk(req, nav_section, strlen(nav_section));
 
     /* Channel selection form */
-    len = snprintf(buffer, sizeof(buffer),
+    len = snprintf(buffer, 2048,
         "<h2>Update Configuration</h2>"
         "<div id='message'></div>"
         "<form id='channelForm'>"
@@ -242,6 +247,7 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
     /* Signal end of response */
     httpd_resp_send_chunk(req, NULL, 0);
 
+    free(buffer);
     ESP_LOGI(TAG, "Configuration page served");
     return ESP_OK;
 }
