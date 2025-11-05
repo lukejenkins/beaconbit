@@ -80,5 +80,6 @@ Temporary Items
 .env
 
 managed_components/espressif__cJSON/
+managed_components/espressif__iperf/
 
 compile_commands.json
