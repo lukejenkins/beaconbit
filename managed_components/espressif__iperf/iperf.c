@@ -5,6 +5,7 @@
  */
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 #include <sys/param.h>
 #include <sys/socket.h>
 #include "sdkconfig.h"
@@ -253,7 +254,6 @@ static esp_err_t iperf_run_tcp_server(void)
     int err = 0;
     esp_err_t ret = ESP_OK;
     struct timeval timeout = { 0 };
-    socklen_t addr_len = sizeof(struct sockaddr);
     struct sockaddr_storage listen_addr = { 0 };
 #if IPERF_IPV4_ENABLED
     struct sockaddr_in listen_addr4 = { 0 };
@@ -315,15 +315,59 @@ static esp_err_t iperf_run_tcp_server(void)
 
     if (s_iperf_ctrl.cfg.type == IPERF_IP_TYPE_IPV6) {
 #if IPERF_IPV6_ENABLED
-        client_socket = accept(tcp_listen_socket, (struct sockaddr *)&remote_addr6, &addr_len);
-        ESP_GOTO_ON_FALSE((client_socket >= 0), ESP_FAIL, exit, TAG, "Unable to accept connection: errno %d", errno);
-        ESP_LOGI(TAG, "accept: %s,%d", inet6_ntoa(remote_addr6.sin6_addr), htons(remote_addr6.sin6_port));
+        while (!s_iperf_ctrl.finish) {
+            socklen_t addr_len6 = sizeof(remote_addr6);
+            client_socket = accept(tcp_listen_socket, (struct sockaddr *)&remote_addr6, &addr_len6);
+            if (client_socket >= 0) {
+                ESP_LOGI(TAG, "accept: %s,%d", inet6_ntoa(remote_addr6.sin6_addr), htons(remote_addr6.sin6_port));
+                break;
+            }
+
+            int accept_errno = errno;
+            if (s_iperf_ctrl.finish) {
+                ret = ESP_OK;
+                goto exit;
+            }
+            if (accept_errno == EINTR) {
+                continue;
+            }
+            if (accept_errno == EAGAIN || accept_errno == EWOULDBLOCK) {
+                ESP_LOGD(TAG, "Waiting for IPv6 TCP client connection...");
+                continue;
+            }
+
+            ESP_LOGE(TAG, "Unable to accept connection: errno %d", accept_errno);
+            ret = ESP_FAIL;
+            goto exit;
+        }
 #endif
     } else if (s_iperf_ctrl.cfg.type == IPERF_IP_TYPE_IPV4) {
 #if IPERF_IPV4_ENABLED
-        client_socket = accept(tcp_listen_socket, (struct sockaddr *)&remote_addr, &addr_len);
-        ESP_GOTO_ON_FALSE((client_socket >= 0), ESP_FAIL, exit, TAG, "Unable to accept connection: errno %d", errno);
-        ESP_LOGI(TAG, "accept: %s,%d", inet_ntoa(remote_addr.sin_addr), htons(remote_addr.sin_port));
+        while (!s_iperf_ctrl.finish) {
+            socklen_t addr_len4 = sizeof(remote_addr);
+            client_socket = accept(tcp_listen_socket, (struct sockaddr *)&remote_addr, &addr_len4);
+            if (client_socket >= 0) {
+                ESP_LOGI(TAG, "accept: %s,%d", inet_ntoa(remote_addr.sin_addr), htons(remote_addr.sin_port));
+                break;
+            }
+
+            int accept_errno = errno;
+            if (s_iperf_ctrl.finish) {
+                ret = ESP_OK;
+                goto exit;
+            }
+            if (accept_errno == EINTR) {
+                continue;
+            }
+            if (accept_errno == EAGAIN || accept_errno == EWOULDBLOCK) {
+                ESP_LOGD(TAG, "Waiting for IPv4 TCP client connection...");
+                continue;
+            }
+
+            ESP_LOGE(TAG, "Unable to accept connection: errno %d", accept_errno);
+            ret = ESP_FAIL;
+            goto exit;
+        }
 #endif
     }
 

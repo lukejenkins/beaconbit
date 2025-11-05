@@ -248,6 +248,11 @@ void wifi_init_softap(void)
 }
 
 #ifdef CONFIG_BEACONBIT_IPERF_SERVER_ENABLE
+#include "iperf.h"
+
+// Expose iperf's internal running state
+extern bool g_iperf_is_running;
+
 static void iperf_task(void *pvParameters)
 {
     // Wait for network interface to be fully ready
@@ -262,16 +267,19 @@ static void iperf_task(void *pvParameters)
         iperf_cfg_t iperf_cfg = {
             .flag = IPERF_FLAG_SERVER | IPERF_FLAG_TCP,
             .type = IPERF_IP_TYPE_IPV4,
-            .dport = CONFIG_BEACONBIT_IPERF_SERVER_PORT,
+            .sport = CONFIG_BEACONBIT_IPERF_SERVER_PORT,  // Bind the server to the configured port
             .interval = 3,
             .time = 30,  // Wait up to 30 seconds for connections
         };
         
         esp_err_t ret = iperf_start(&iperf_cfg);
         if (ret == ESP_OK) {
-            // Wait for this session to complete (it will exit after ~10s of no connection or after test completes)
-            // The iperf component will automatically stop after its internal timeout
-            vTaskDelay(pdMS_TO_TICKS(15000));  // Wait 15 seconds before checking status
+            ESP_LOGI(TAG, "iPerf server started. Waiting for test to complete...");
+            // Poll until the iperf test is finished
+            while (g_iperf_is_running) {
+                vTaskDelay(pdMS_TO_TICKS(1000));
+            }
+            ESP_LOGI(TAG, "iPerf test finished. Restarting server.");
             
             // Stop and restart
             iperf_stop();
