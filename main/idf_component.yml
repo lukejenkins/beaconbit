@@ -10,3 +10,5 @@ dependencies:
       - if: "target in [esp32p4, esp32h2]"
   cJSON:
     version: "~1.7"
+  iperf:
+    version: ">=0.1.1"

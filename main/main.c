@@ -14,6 +14,10 @@
 #include "softap_config.h"
 #include "softap_webserver.h"
 
+#ifdef CONFIG_BEACONBIT_IPERF_SERVER_ENABLE
+#include "iperf.h"
+#endif
+
 /* The examples use WiFi configuration that you can set via project configuration menu.
 
    If you'd rather not, just change the below entries to strings with
@@ -243,6 +247,64 @@ void wifi_init_softap(void)
              cfg.ssid, cfg.password, cfg.channel, cfg.country_code, auth_mode_str);
 }
 
+#ifdef CONFIG_BEACONBIT_IPERF_SERVER_ENABLE
+#include "iperf.h"
+
+// Expose iperf's internal running state
+extern bool g_iperf_is_running;
+
+static void iperf_task(void *pvParameters)
+{
+    // Wait for network interface to be fully ready
+    ESP_LOGI(TAG, "Waiting for network interface to be ready...");
+    vTaskDelay(pdMS_TO_TICKS(2000));
+    
+    ESP_LOGI(TAG, "iPerf server running on port %d", CONFIG_BEACONBIT_IPERF_SERVER_PORT);
+    ESP_LOGI(TAG, "Run 'iperf -c 192.168.4.1 -i 1 -t 30' from a connected client to test");
+    
+    // Keep the iperf server running continuously
+    while (1) {
+        iperf_cfg_t iperf_cfg = {
+            .flag = IPERF_FLAG_SERVER | IPERF_FLAG_TCP,
+            .type = IPERF_IP_TYPE_IPV4,
+            .sport = CONFIG_BEACONBIT_IPERF_SERVER_PORT,  // Bind the server to the configured port
+            .interval = 3,
+            .time = 30,  // Wait up to 30 seconds for connections
+        };
+        
+        esp_err_t ret = iperf_start(&iperf_cfg);
+        if (ret == ESP_OK) {
+            ESP_LOGI(TAG, "iPerf server started. Waiting for test to complete...");
+            // Poll until the iperf test is finished
+            while (g_iperf_is_running) {
+                vTaskDelay(pdMS_TO_TICKS(1000));
+            }
+            ESP_LOGI(TAG, "iPerf test finished. Restarting server.");
+            
+            // Stop and restart
+            iperf_stop();
+            vTaskDelay(pdMS_TO_TICKS(1000));  // 1 second delay before restart
+        } else if (ret == ESP_FAIL) {
+            // Already running, stop and restart
+            iperf_stop();
+            vTaskDelay(pdMS_TO_TICKS(2000));
+        } else {
+            ESP_LOGE(TAG, "Failed to start iPerf server: %s", esp_err_to_name(ret));
+            vTaskDelay(pdMS_TO_TICKS(5000));
+        }
+    }
+    
+    // Should never reach here
+    vTaskDelete(NULL);
+}
+
+static void iperf_init(void)
+{
+    // Create a task to manage iPerf server
+    xTaskCreate(iperf_task, "iperf_server", 4096, NULL, 5, NULL);
+}
+#endif
+
 void app_main(void)
 {
     //Initialize NVS
@@ -261,4 +323,9 @@ void app_main(void)
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to start web server");
     }
+
+#ifdef CONFIG_BEACONBIT_IPERF_SERVER_ENABLE
+    // Start iPerf server after WiFi and web server are up
+    iperf_init();
+#endif
 }

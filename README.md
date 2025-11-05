@@ -133,6 +133,40 @@ The web interface is responsive and works well on both desktop and mobile device
   - Automatic fallback if WPS not enabled in SDK config
   - Event handlers for WPS connection/timeout/failure
   - See `docs/WPS_BEACON_IE.md` for technical details on beacon frame IEs
+- [X] **iPerf Server Integration**
+  - Built-in iPerf server for network performance testing
+  - Automatically starts on boot (configurable)
+  - Supports TCP and UDP throughput testing
+  - Configurable server port (default: 5001)
+  - Compatible with standard iPerf 2.x clients
+  - See `docs/IPERF.md` for usage instructions and performance expectations
+  - **Upstream patch applied**: Includes a fix for the `espressif/iperf` component to resolve connection acceptance issues (see below)
+
+## Upstream Component Patches
+
+This project includes patches for upstream ESP-IDF managed components to fix bugs that affect functionality. These patches are applied automatically during the build process.
+
+### iPerf Component Patch
+
+**Location**: `patches/iperf_accept_fix.patch`
+
+**Issue**: The upstream `espressif/iperf` component has a bug where the TCP server's `accept()` call fails with errno 11 (EAGAIN - Resource temporarily unavailable) when the socket timeout expires before a client connects. This causes the server to exit prematurely instead of waiting for connections.
+
+**Fix**: The patch modifies `iperf.c` to:
+
+1. Add `#include <errno.h>` for proper errno handling
+2. Wrap the `accept()` call in a retry loop that continues waiting for connections
+3. Handle timeout errors (`EAGAIN`/`EWOULDBLOCK`) gracefully by retrying
+4. Handle interrupt signals (`EINTR`) by retrying
+5. Only exit on genuine errors or when `iperf_stop()` is called
+
+**Build Integration**: The patch is automatically applied during CMake configuration using the `patch` command. No manual intervention is required. The build system:
+
+- Detects when the `espressif__iperf` component is downloaded
+- Applies the patch before compilation
+- Creates a stamp file to avoid reapplying on subsequent builds
+
+**For Contributors**: The managed components directory (`managed_components/`) is excluded from version control via `.gitignore`. The ESP-IDF dependency manager (`idf.py`) automatically downloads these components based on `main/idf_component.yml`. When you build the project, the patch is applied transparently.
 
 ## To-Do / Roadmap
 
@@ -145,6 +179,11 @@ The web interface is responsive and works well on both desktop and mobile device
   - Apply changes without restart (if possible)
 - [ ] Add captive portal to redirect clients to the configuration page upon connection
 - [ ] Add "Reset to Defaults" button in web interface
+- [ ] Improve iperf stability and usability
+  - [X] Fix upstream accept() bug (done)
+  - [ ] Add web interface for starting/stopping tests
+  - [ ] Display real-time throughput statistics in web interface
+  - [ ] Add support for iperf tests that run longer than 30 seconds
 
 ### Medium Priority
 
@@ -156,8 +195,8 @@ The web interface is responsive and works well on both desktop and mobile device
   - Client connect/disconnect events with timestamps
   - Configuration change history
   - Viewable via web interface
-- [ ] Speed testing services to measure throughput of the connected clients
-  - [ ] iperf server
+- [P] Speed testing services to measure throughput of the connected clients
+  - [X] iperf server
   - [ ] Web interface for speed tests
 
 ### Low Priority / Future Enhancements
