@@ -208,7 +208,7 @@ void beaconbit_config_generate_default(beaconbit_config_t *out_config)
     uint8_t mac[6];
     esp_read_mac(mac, ESP_MAC_WIFI_SOFTAP);
 
-    // Format: CYBR3720-ESP32-XXXX where XXXX are the last 4 hex digits of the MAC
+    // Format: BeaconBit-XXXX where XXXX are the last 4 hex digits of the MAC
     // Use template from .env (DEFAULT_SSID_PREFIX_TEMPLATE), replacing XXXX with last two MAC bytes
     const char *tpl = DEFAULT_SSID_PREFIX_TEMPLATE;
     char tmp[64];
