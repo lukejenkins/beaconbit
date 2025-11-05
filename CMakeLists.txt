@@ -18,7 +18,7 @@ cmake_minimum_required(VERSION 3.16)
 
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/iperf_patched.stamp
-    COMMAND git apply --directory=${CMAKE_SOURCE_DIR}/managed_components/espressif__iperf ${CMAKE_SOURCE_DIR}/patches/iperf_accept_fix.patch
+    COMMAND patch -p1 -d ${CMAKE_SOURCE_DIR}/managed_components/espressif__iperf < ${CMAKE_SOURCE_DIR}/patches/iperf_accept_fix.patch || true
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     COMMENT "Applying patch to espressif/iperf component"
     USES_TERMINAL
