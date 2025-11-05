@@ -57,6 +57,7 @@ esp_err_t beaconbit_config_load(beaconbit_config_t *out_config)
     const cJSON *jpass = cJSON_GetObjectItemCaseSensitive(root, "password");
     const cJSON *jcountry = cJSON_GetObjectItemCaseSensitive(root, "country_code");
     const cJSON *jwps = cJSON_GetObjectItemCaseSensitive(root, "wps_device_name");
+    const cJSON *japname = cJSON_GetObjectItemCaseSensitive(root, "apname_ie_value");
     const cJSON *jwps_enabled = cJSON_GetObjectItemCaseSensitive(root, "wps_enabled");
     const cJSON *japname_ie = cJSON_GetObjectItemCaseSensitive(root, "apname_ie_enabled");
     const cJSON *jchannel = cJSON_GetObjectItemCaseSensitive(root, "channel");
@@ -85,6 +86,12 @@ esp_err_t beaconbit_config_load(beaconbit_config_t *out_config)
     } else {
         // Default to SSID if not specified
         strncpy(out_config->wps_device_name, out_config->ssid, sizeof(out_config->wps_device_name)-1);
+    }
+    if (cJSON_IsString(japname) && (japname->valuestring != NULL)) {
+        strncpy(out_config->apname_ie_value, japname->valuestring, sizeof(out_config->apname_ie_value)-1);
+    } else {
+        // Default to SSID if not specified
+        strncpy(out_config->apname_ie_value, out_config->ssid, sizeof(out_config->apname_ie_value)-1);
     }
     if (cJSON_IsBool(jwps_enabled)) {
         out_config->wps_enabled = cJSON_IsTrue(jwps_enabled);
@@ -156,6 +163,7 @@ esp_err_t beaconbit_config_save(const beaconbit_config_t *config)
     cJSON_AddStringToObject(root, "password", config->password);
     cJSON_AddStringToObject(root, "country_code", config->country_code);
     cJSON_AddStringToObject(root, "wps_device_name", config->wps_device_name);
+    cJSON_AddStringToObject(root, "apname_ie_value", config->apname_ie_value);
     cJSON_AddBoolToObject(root, "wps_enabled", config->wps_enabled);
     cJSON_AddBoolToObject(root, "apname_ie_enabled", config->apname_ie_enabled);
     cJSON_AddNumberToObject(root, "channel", config->channel);
@@ -268,6 +276,28 @@ void beaconbit_config_generate_default(beaconbit_config_t *out_config)
 #else
     // Default to SSID if not specified
     strncpy(out_config->wps_device_name, out_config->ssid, sizeof(out_config->wps_device_name)-1);
+#endif
+
+    // Set default Alcatel-Lucent AP Name IE value from environment variable
+    // If not specified, use the SSID
+#ifdef DEFAULT_APNAME_IE_VALUE
+    const char *apname_tpl = DEFAULT_APNAME_IE_VALUE;
+    const char *apname_pos = strstr(apname_tpl, "XXXX");
+    if (apname_pos) {
+        // build prefix around XXXX
+        size_t apname_prefix_len = apname_pos - apname_tpl;
+        if (apname_prefix_len >= sizeof(tmp)) apname_prefix_len = sizeof(tmp) - 1;
+        memcpy(tmp, apname_tpl, apname_prefix_len);
+        int n = snprintf(tmp + apname_prefix_len, sizeof(tmp) - apname_prefix_len, "%02X%02X", mac[4], mac[5]);
+        tmp[apname_prefix_len + n] = '\0';
+        strncpy(out_config->apname_ie_value, tmp, sizeof(out_config->apname_ie_value)-1);
+    } else {
+        // fallback: append last two bytes
+        snprintf(out_config->apname_ie_value, sizeof(out_config->apname_ie_value), "%s%02X%02X", apname_tpl, mac[4], mac[5]);
+    }
+#else
+    // Default to SSID if not specified
+    strncpy(out_config->apname_ie_value, out_config->ssid, sizeof(out_config->apname_ie_value)-1);
 #endif
 
     // Set default WPS and AP Name IE enabled flags from environment variables

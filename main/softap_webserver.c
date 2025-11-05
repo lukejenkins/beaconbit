@@ -135,6 +135,7 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
         "<tr><td class='label'>GTK Rekey Interval</td><td class='value'>%d seconds</td></tr>"
         "<tr><td class='label'>WPS Device Name</td><td class='value'>%s</td></tr>"
         "<tr><td class='label'>WPS Enabled</td><td class='value'>%s</td></tr>"
+        "<tr><td class='label'>AP Name IE Value</td><td class='value'>%s</td></tr>"
         "<tr><td class='label'>AP Name IE Enabled</td><td class='value'>%s</td></tr>"
         "</table>",
         config.ssid,
@@ -147,6 +148,7 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
         config.gtk_rekey_interval,
         config.wps_device_name,
         config.wps_enabled ? "Yes" : "No",
+        config.apname_ie_value,
         config.apname_ie_enabled ? "Yes" : "No"
     );
 

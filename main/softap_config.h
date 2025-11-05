@@ -11,6 +11,7 @@ typedef struct {
     char password[65];
     char country_code[3]; // ISO 3166-1 alpha-2 country code (e.g., "US", "JP", "DE")
     char wps_device_name[33]; // WPS device name (max 32 chars + null terminator)
+    char apname_ie_value[33]; // Alcatel-Lucent AP Name IE value (max 32 chars + null terminator)
     int channel;
     int max_connection;
     int gtk_rekey_interval;

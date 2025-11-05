@@ -12,6 +12,9 @@
 // Default WPS device name template (use 'XXXX' for MAC address suffix)
 #define DEFAULT_WPS_DEVICE_NAME "@DEFAULT_WPS_DEVICE_NAME@"
 
+// Default Alcatel-Lucent AP Name IE value template (use 'XXXX' for MAC address suffix)
+#define DEFAULT_APNAME_IE_VALUE "@DEFAULT_APNAME_IE_VALUE@"
+
 // Default WPS enabled flag (true or false)
 #define DEFAULT_WPS_ENABLED "@DEFAULT_WPS_ENABLED@"
 

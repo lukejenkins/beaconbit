@@ -38,6 +38,14 @@ if(EXISTS ${ENV_FILE})
         set(DEFAULT_WPS_DEVICE_NAME "ESP32-XXXX")
     endif()
     
+    # Also read DEFAULT_APNAME_IE_VALUE
+    string(REGEX MATCH "DEFAULT_APNAME_IE_VALUE[ \t]*=[ \t]*\"([^\"]+)\"" _apname_value_match ${ENV_CONTENTS})
+    if(_apname_value_match)
+        string(REGEX REPLACE ".*DEFAULT_APNAME_IE_VALUE[ \t]*=[ \t]*\"([^\"]+)\".*" "\\1" DEFAULT_APNAME_IE_VALUE ${ENV_CONTENTS})
+    else()
+        set(DEFAULT_APNAME_IE_VALUE "ESP32-XXXX")
+    endif()
+    
     # Also read DEFAULT_WPS_ENABLED
     string(REGEX MATCH "DEFAULT_WPS_ENABLED[ \t]*=[ \t]*\"([^\"]+)\"" _wps_enabled_match ${ENV_CONTENTS})
     if(_wps_enabled_match)
@@ -58,6 +66,7 @@ else()
     set(DEFAULT_AUTH_MODE "WPA2_PSK")
     set(DEFAULT_COUNTRY_CODE "US")
     set(DEFAULT_WPS_DEVICE_NAME "ESP32-XXXX")
+    set(DEFAULT_APNAME_IE_VALUE "ESP32-XXXX")
     set(DEFAULT_WPS_ENABLED "true")
     set(DEFAULT_APNAME_IE_ENABLED "true")
 endif()

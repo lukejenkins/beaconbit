@@ -166,7 +166,7 @@ void wifi_init_softap(void)
     // This supplements the minimal WPS IE in beacons with our device name
     // Using Alcatel-Lucent OUI (0xDC:08:56) which Wireshark already decodes as "wlan.vs.alcatel.apname"
     if (cfg.apname_ie_enabled) {
-        size_t device_name_len = strlen(cfg.wps_device_name);
+        size_t device_name_len = strlen(cfg.apname_ie_value);
         size_t total_ie_size = sizeof(vendor_ie_data_t) + device_name_len;
         uint8_t *device_name_ie = (uint8_t *)malloc(total_ie_size);
         
@@ -178,12 +178,12 @@ void wifi_init_softap(void)
             vie->vendor_oui[1] = 0x08; // Alcatel-Lucent OUI byte 2
             vie->vendor_oui[2] = 0x56; // Alcatel-Lucent OUI byte 3
             vie->vendor_oui_type = 0x01; // Type: AP Name (ALCATEL_APNAME)
-            memcpy(vie->payload, cfg.wps_device_name, device_name_len);
+            memcpy(vie->payload, cfg.apname_ie_value, device_name_len);
             
             esp_err_t ie_err = esp_wifi_set_vendor_ie(true, WIFI_VND_IE_TYPE_BEACON, 
                                                        WIFI_VND_IE_ID_1, vie);
             if (ie_err == ESP_OK) {
-                ESP_LOGI(TAG, "Alcatel-Lucent AP Name IE added to beacons: %s", cfg.wps_device_name);
+                ESP_LOGI(TAG, "Alcatel-Lucent AP Name IE added to beacons: %s", cfg.apname_ie_value);
             } else {
                 ESP_LOGW(TAG, "Failed to add Alcatel-Lucent AP Name IE to beacons: %s", esp_err_to_name(ie_err));
             }
