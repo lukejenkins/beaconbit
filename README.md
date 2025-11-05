@@ -1,4 +1,4 @@
-# BeaconBit
+# 🥓 BeaconBit 🥓
 
 A configurable ESP32 Wi-Fi Access Point with web interface and NVS-backed configuration. BeaconBit is an expansion of the original Wi-Fi SoftAP example provided in ESP-IDF with additional configuration options.
 
