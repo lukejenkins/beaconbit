@@ -7,8 +7,10 @@
 #include "softap_config.h"
 #include "esp_log.h"
 #include "esp_system.h"
+#include "esp_timer.h"
 #include "cJSON.h"
 #include <string.h>
+#include <stdlib.h>
 
 static const char *TAG = "beaconbit_webserver";
 static httpd_handle_t server = NULL;
@@ -304,8 +306,8 @@ static bool speedtest_in_progress = false;
 static esp_err_t speedtest_download_handler(httpd_req_t *req) {
     if (speedtest_in_progress) {
         httpd_resp_set_type(req, "application/json");
-        httpd_resp_send_err(req, HTTPD_503_SERVICE_UNAVAILABLE,
-                           "{\"error\":\"Test already in progress\"}");
+        httpd_resp_set_status(req, "503 Service Unavailable");
+        httpd_resp_send(req, "{\"error\":\"Test already in progress\"}", -1);
         return ESP_FAIL;
     }
 
@@ -368,8 +370,8 @@ static esp_err_t speedtest_download_handler(httpd_req_t *req) {
 static esp_err_t speedtest_upload_handler(httpd_req_t *req) {
     if (speedtest_in_progress) {
         httpd_resp_set_type(req, "application/json");
-        httpd_resp_send_err(req, HTTPD_503_SERVICE_UNAVAILABLE,
-                           "{\"error\":\"Test already in progress\"}");
+        httpd_resp_set_status(req, "503 Service Unavailable");
+        httpd_resp_send(req, "{\"error\":\"Test already in progress\"}", -1);
         return ESP_FAIL;
     }
 
