@@ -1,5 +1,5 @@
 idf_component_register(SRCS "main.c" "softap_config.c" "softap_webserver.c"
-                    PRIV_REQUIRES esp_wifi nvs_flash esp_http_server espressif__cJSON wpa_supplicant
+                    PRIV_REQUIRES esp_wifi nvs_flash esp_http_server espressif__cJSON wpa_supplicant iperf
                     INCLUDE_DIRS ".")
 
 # Generate a header from .env (if present) to expose DEFAULT_SSID_PREFIX_TEMPLATE

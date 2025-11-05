@@ -37,4 +37,20 @@ menu "Example Configuration"
         default 600
         help
             GTK rekeying interval in seconds.
+
+    config BEACONBIT_IPERF_SERVER_ENABLE
+        bool "Enable iPerf Server"
+        default y
+        help
+            Enable built-in iPerf server for network performance testing.
+            When enabled, the iPerf server will start automatically on boot.
+
+    config BEACONBIT_IPERF_SERVER_PORT
+        int "iPerf Server Port"
+        depends on BEACONBIT_IPERF_SERVER_ENABLE
+        range 1024 65535
+        default 5001
+        help
+            Port number for the iPerf server to listen on.
+            Default is 5001 (standard iPerf port).
 endmenu

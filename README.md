@@ -133,6 +133,13 @@ The web interface is responsive and works well on both desktop and mobile device
   - Automatic fallback if WPS not enabled in SDK config
   - Event handlers for WPS connection/timeout/failure
   - See `docs/WPS_BEACON_IE.md` for technical details on beacon frame IEs
+- [X] **iPerf Server Integration**
+  - Built-in iPerf server for network performance testing
+  - Automatically starts on boot (configurable)
+  - Supports TCP and UDP throughput testing
+  - Configurable server port (default: 5001)
+  - Compatible with standard iPerf 2.x clients
+  - See `docs/IPERF.md` for usage instructions and performance expectations
 
 ## To-Do / Roadmap
 
@@ -156,8 +163,8 @@ The web interface is responsive and works well on both desktop and mobile device
   - Client connect/disconnect events with timestamps
   - Configuration change history
   - Viewable via web interface
-- [ ] Speed testing services to measure throughput of the connected clients
-  - [ ] iperf server
+- [P] Speed testing services to measure throughput of the connected clients
+  - [X] iperf server
   - [ ] Web interface for speed tests
 
 ### Low Priority / Future Enhancements
