@@ -30,7 +30,7 @@
 #define EXAMPLE_GTK_REKEY_INTERVAL 0
 #endif
 
-static const char *TAG = "wifi softAP";
+static const char *TAG = "beaconbit";
 
 static void wifi_event_handler(void* arg, esp_event_base_t event_base,
                                     int32_t event_id, void* event_data)
@@ -63,20 +63,20 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,
 
 void wifi_init_softap(void)
 {
-    softap_config_t cfg;
-    esp_err_t r = softap_config_load(&cfg);
+    beaconbit_config_t cfg;
+    esp_err_t r = beaconbit_config_load(&cfg);
     if (r == ESP_ERR_NVS_NOT_FOUND) {
-        ESP_LOGI(TAG, "No softAP config found in NVS; generating default");
-        softap_config_generate_default(&cfg);
-        esp_err_t s = softap_config_save(&cfg);
+        ESP_LOGI(TAG, "No config found in NVS; generating default");
+        beaconbit_config_generate_default(&cfg);
+        esp_err_t s = beaconbit_config_save(&cfg);
         if (s != ESP_OK) {
-            ESP_LOGW(TAG, "Failed to save generated softAP config: %s", esp_err_to_name(s));
+            ESP_LOGW(TAG, "Failed to save generated config: %s", esp_err_to_name(s));
         } else {
-            ESP_LOGI(TAG, "Generated softAP config saved to NVS");
+            ESP_LOGI(TAG, "Generated config saved to NVS");
         }
     } else if (r != ESP_OK) {
-        ESP_LOGW(TAG, "Failed to load softAP config (%s), using defaults", esp_err_to_name(r));
-        softap_config_generate_default(&cfg);
+        ESP_LOGW(TAG, "Failed to load config (%s), using defaults", esp_err_to_name(r));
+        beaconbit_config_generate_default(&cfg);
     }
 
     ESP_ERROR_CHECK(esp_netif_init());
@@ -257,7 +257,7 @@ void app_main(void)
     wifi_init_softap();
 
     // Start the web server
-    ret = softap_webserver_start();
+    ret = beaconbit_webserver_start();
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to start web server");
     }

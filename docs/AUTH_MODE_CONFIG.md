@@ -2,7 +2,7 @@
 
 ## Overview
 
-This softAP example now supports runtime configuration of the Wi-Fi authentication mode through NVS storage. Users can choose between WPA2-PSK and WPA3-PSK (WPA3-SAE) authentication modes.
+BeaconBit supports runtime configuration of the Wi-Fi authentication mode through NVS storage. Users can choose between WPA2-PSK and WPA3-PSK (WPA3-SAE) authentication modes.
 
 ## Configuration Methods
 
@@ -11,7 +11,7 @@ This softAP example now supports runtime configuration of the Wi-Fi authenticati
 Set the default authentication mode by creating a `.env` file in the project root:
 
 ```env
-# Default authentication mode for softAP
+# Default authentication mode for access point
 # Options: WPA2_PSK, WPA3_PSK (also accepts WPA3-SAE)
 DEFAULT_AUTH_MODE="WPA2_PSK"
 ```
@@ -20,13 +20,13 @@ This value is used when generating the default configuration on first boot.
 
 ### 2. Runtime Configuration via NVS
 
-The authentication mode is stored in NVS as part of the softAP configuration JSON object. The configuration is saved in the `softap_cfg` namespace under the key `json`.
+The authentication mode is stored in NVS as part of the configuration JSON object. The configuration is saved in the `beaconbit_cfg` namespace under the key `json`.
 
 Example JSON structure:
 
 ```json
 {
-  "ssid": "ESP32-A1B2",
+  "ssid": "BeaconBit-A1B2",
   "password": "mypassword",
   "channel": 1,
   "bandwidth": 1,
@@ -85,14 +85,14 @@ Modify the configuration by calling:
 ```c
 #include "softap_config.h"
 
-softap_config_t cfg;
-softap_config_load(&cfg);
+beaconbit_config_t cfg;
+beaconbit_config_load(&cfg);
 
 // Change auth mode
 cfg.auth_mode = WIFI_AUTH_WPA3_PSK;
 
 // Save changes
-softap_config_save(&cfg);
+beaconbit_config_save(&cfg);
 
 // Restart to apply
 esp_restart();
@@ -110,11 +110,11 @@ esp_restart();
 When WPA3 is configured and supported:
 
 ```bash
-I (123) wifi softAP: wifi_init_softap finished. SSID:ESP32-A1B2 password:mypassword channel:1 auth:WPA3-PSK
+I (123) beaconbit: wifi_init_softap finished. SSID:BeaconBit-A1B2 password:mypassword channel:1 auth:WPA3-PSK
 ```
 
 When WPA2 is configured:
 
 ```bash
-I (123) wifi softAP: wifi_init_softap finished. SSID:ESP32-A1B2 password:mypassword channel:1 auth:WPA2-PSK
+I (123) beaconbit: wifi_init_softap finished. SSID:BeaconBit-A1B2 password:mypassword channel:1 auth:WPA2-PSK
 ```

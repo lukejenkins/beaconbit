@@ -2,7 +2,7 @@
 
 ## Overview
 
-The ESP32 SoftAP now supports configuring the 802.11 country code (regulatory domain) for WiFi operation. This feature ensures compliance with local regulations regarding WiFi channels and transmit power limits.
+The BeaconBit project now supports configuring the 802.11 country code (regulatory domain) for WiFi operation. This feature ensures compliance with local regulations regarding WiFi channels and transmit power limits.
 
 ## What is a Country Code?
 
@@ -122,7 +122,7 @@ Always verify local regulations and ensure your WiFi configuration complies with
 Check the serial console output for warnings:
 
 ```plaintext
-W (1234) wifi softAP: Failed to set country code US: ESP_ERR_WIFI_ARG
+W (1234) beaconbit: Failed to set country code US: ESP_ERR_WIFI_ARG
 ```
 
 **Solution**: Ensure the country code is a valid 2-letter ISO 3166-1 alpha-2 code.
@@ -132,7 +132,7 @@ W (1234) wifi softAP: Failed to set country code US: ESP_ERR_WIFI_ARG
 Some channels may not be available in certain countries. The firmware logs the applied country settings:
 
 ```plaintext
-I (1234) wifi softAP: Country code set to: US (channels 1-11)
+I (1234) beaconbit: Country code set to: US (channels 1-11)
 ```
 
 **Solution**: Select a channel within the available range for your country code.

@@ -1,4 +1,4 @@
-# ESP32 SoftAP Project - Default SDK Configuration
+# BeaconBit - Default SDK Configuration
 # This file specifies required Kconfig options for the project to build and function correctly.
 # These settings will be automatically applied when running 'idf.py set-target' or on first build.
 

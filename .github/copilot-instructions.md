@@ -1,12 +1,12 @@
-# ESP32 SoftAP Project - AI Agent Instructions
+# BeaconBit - AI Agent Instructions
 
 ## Project Overview
-This is an ESP-IDF project that creates a configurable Wi-Fi SoftAP (Access Point) with a web interface for ESP32 microcontrollers. The project supports multiple ESP32 targets (esp32, esp32c3, esp32s3, esp32c6) and uses NVS (Non-Volatile Storage) for persistent configuration.
+This is an ESP-IDF project that creates a configurable Wi-Fi Access Point with a web interface for ESP32 microcontrollers. The project supports multiple ESP32 targets (esp32, esp32c3, esp32s3, esp32c6) and uses NVS (Non-Volatile Storage) for persistent configuration.
 
 ## Architecture & Key Components
 
 ### Core Components
-- **`main/main.c`**: Entry point; initializes NVS, WiFi SoftAP, and web server
+- **`main/main.c`**: Entry point; initializes NVS, WiFi Access Point, and web server
 - **`main/softap_config.{c,h}`**: NVS-backed configuration management with JSON serialization using cJSON
 - **`main/softap_webserver.{c,h}`**: HTTP server providing HTML UI at `/` and JSON API at `/api/config`
 - **`main/softap_env.h.in`**: CMake template for `.env`-based compile-time defaults
@@ -15,7 +15,7 @@ This is an ESP-IDF project that creates a configurable Wi-Fi SoftAP (Access Poin
 Configuration is triple-layered:
 1. **Build-time defaults** via `.env` file (optional) → processed by CMake into `softap_env.h`
 2. **Kconfig options** in `main/Kconfig.projbuild` (legacy, overridden by NVS)
-3. **Runtime NVS storage** under namespace `softap_cfg` as JSON blob (primary source of truth)
+  3. **Runtime NVS storage** under namespace `beaconbit_cfg` as JSON blob (primary source of truth)
 
 When NVS is empty on first boot, defaults are generated from `.env` + MAC address and saved to NVS.
 
@@ -61,7 +61,7 @@ The project uses `idf_build_set_property(MINIMAL_BUILD ON)` in `CMakeLists.txt` 
 ### NVS Configuration Structure
 ```json
 {
-  "ssid": "ESP32-XXXX",
+  "ssid": "BeaconBit-XXXX",
   "password": "...",
   "channel": 1,
   "bandwidth": 1,
@@ -70,7 +70,7 @@ The project uses `idf_build_set_property(MINIMAL_BUILD ON)` in `CMakeLists.txt` 
   "auth_mode": "WPA2_PSK"  // or "WPA3_PSK"
 }
 ```
-- **Never modify NVS keys directly** — use `softap_config_load()` / `softap_config_save()`
+- **Never modify NVS keys directly** — use `beaconbit_config_load()` / `beaconbit_config_save()`
 - Password validation: empty for open networks, or 8-63 chars for WPA
 - SSID template uses `XXXX` placeholder replaced with last 4 hex digits of MAC
 
@@ -97,9 +97,9 @@ If WPA3 is configured in NVS but SAE is disabled, the code falls back to WPA2 au
 - **CMake-generated header**: `build/main/softap_env.h` is auto-generated from `.env` file at build time
 
 ## Data Flows
-1. **Boot**: `app_main()` → NVS init → `softap_config_load()` → generate defaults if missing → `wifi_init_softap()` → `esp_wifi_set_bandwidth()` + `esp_wifi_set_config()` → web server start
-2. **Web request**: Client → ESP32 HTTP server → `root_get_handler()` or `api_config_get_handler()` → `softap_config_load()` → render HTML/JSON
-3. **Config update** (future feature): Web form POST → `softap_config_save()` → `esp_restart()` to apply
+1. **Boot**: `app_main()` → NVS init → `beaconbit_config_load()` → generate defaults if missing → `wifi_init_softap()` → `esp_wifi_set_bandwidth()` + `esp_wifi_set_config()` → web server start
+2. **Web request**: Client → ESP32 HTTP server → `root_get_handler()` or `api_config_get_handler()` → `beaconbit_config_load()` → render HTML/JSON
+3. **Config update** (future feature): Web form POST → `beaconbit_config_save()` → `esp_restart()` to apply
 
 ## Testing & CI
 - **Target API audit**: Run `python3 tools/audit_target_api.py` before commits (checks for target-specific code patterns)

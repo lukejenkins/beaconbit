@@ -1,13 +1,13 @@
 /**
  * @file softap_webserver.h
- * @brief Web server for SoftAP configuration interface
+ * @brief Web server for BeaconBit configuration interface
  *
  * Provides a simple HTTP server that displays and allows modification
- * of the SoftAP configuration through a web interface.
+ * of the access point configuration through a web interface.
  */
 
-#ifndef SOFTAP_WEBSERVER_H
-#define SOFTAP_WEBSERVER_H
+#ifndef BEACONBIT_WEBSERVER_H
+#define BEACONBIT_WEBSERVER_H
 
 #include "esp_http_server.h"
 #include "esp_err.h"
@@ -26,7 +26,7 @@ extern "C" {
  *     - ESP_OK on success
  *     - ESP_ERR_* on failure
  */
-esp_err_t softap_webserver_start(void);
+esp_err_t beaconbit_webserver_start(void);
 
 /**
  * @brief Stop the HTTP web server
@@ -37,10 +37,10 @@ esp_err_t softap_webserver_start(void);
  *     - ESP_OK on success
  *     - ESP_ERR_* on failure
  */
-esp_err_t softap_webserver_stop(void);
+esp_err_t beaconbit_webserver_stop(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // SOFTAP_WEBSERVER_H
+#endif // BEACONBIT_WEBSERVER_H

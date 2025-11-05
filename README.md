@@ -1,6 +1,6 @@
-# Expanded Wi-Fi SoftAP
+# BeaconBit
 
-This is an expansion of the abilities of the original Wi-Fi SoftAP example provided in ESP-IDF. It includes additional configuration options.
+A configurable ESP32 Wi-Fi Access Point with web interface and NVS-backed configuration. BeaconBit is an expansion of the original Wi-Fi SoftAP example provided in ESP-IDF with additional configuration options.
 
 ## How to use example
 
@@ -14,7 +14,7 @@ This project requires certain ESP-IDF SDK configuration options to be enabled. T
 
 The `sdkconfig.defaults` file ensures these settings are applied automatically when you build the project. If you need to modify SDK settings, you can use `idf.py menuconfig`.
 
-SoftAP supports Protected Management Frames(PMF). Necessary configurations can be set using pmf flags. Please refer [Wifi-Security](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/wifi-security.html) for more info.
+Access Point mode supports Protected Management Frames(PMF). Necessary configurations can be set using pmf flags. Please refer [Wifi-Security](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/wifi-security.html) for more info.
 
 ### Configuration
 
@@ -38,7 +38,7 @@ You can customize default values by creating a `.env` file in the project root. 
 Example `.env` file:
 
 ```env
-DEFAULT_SSID_PREFIX_TEMPLATE="MyAP-XXXX"
+DEFAULT_SSID_PREFIX_TEMPLATE="BeaconBit-XXXX"
 DEFAULT_AUTH_MODE="WPA2_PSK"  # or "WPA3_PSK"
 ```
 
@@ -51,7 +51,7 @@ DEFAULT_AUTH_MODE="WPA2_PSK"  # or "WPA3_PSK"
 
 #### Runtime Configuration via NVS
 
-The configuration is stored in NVS under the namespace `softap_cfg` as a JSON object. You can modify it programmatically or by erasing NVS to regenerate defaults:
+The configuration is stored in NVS under the namespace `beaconbit_cfg` as a JSON object. You can modify it programmatically or by erasing NVS to regenerate defaults:
 
 ```bash
 # Erase NVS to regenerate default configuration
@@ -60,7 +60,7 @@ idf.py erase-flash
 
 ### Web Server Configuration Interface
 
-The project includes a built-in web server that provides a user-friendly interface to view the current SoftAP configuration.
+The project includes a built-in web server that provides a user-friendly interface to view the current access point configuration.
 
 #### Accessing the Web Interface
 

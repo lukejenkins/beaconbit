@@ -38,7 +38,7 @@ Probe responses contain the **complete WPS Information Element** with all device
 - Response Type
 - UUID E (Universally Unique Identifier for Enrollee)
 - **Manufacturer**: "ESPRESSIF"
-- **Model Name**: "ESP SoftAP"
+- **Model Name**: "BeaconBit"
 - **Model Number**: Target chip (e.g., "esp32c3")
 - **Serial Number**: MAC address-based
 - Primary Device Type
@@ -186,7 +186,7 @@ Both IEs are broadcast:
 
 - **In beacon frames**: Every 100ms (10 times/second)
 - **In probe responses**: When a client performs active scanning
-- **Continuous**: As long as the SoftAP is active
+- **Continuous**: As long as the Access Point is active
 
 ## Benefits of Custom IE in Beacons
 
@@ -224,13 +224,13 @@ sudo tcpdump -i en0 -e -vvv -s 0 type mgt subtype beacon | grep -A 10 "ESP32"
 The firmware logs when the custom IE is successfully added:
 
 ```plaintext
-I (123) wifi softAP: Custom device name IE added to beacons: ESP32-07ED
+I (123) beaconbit: Custom device name IE added to beacons: ESP32-07ED
 ```
 
 Or if it fails:
 
 ```plaintext
-W (123) wifi softAP: Failed to add custom device name IE to beacons: [error]
+W (123) beaconbit: Failed to add custom device name IE to beacons: [error]
 ```
 
 ## Alternative Approaches Not Implemented
@@ -305,7 +305,7 @@ Both features are controlled through NVS configuration and can have defaults set
 ### .env File Configuration
 
 ```env
-# Enable/disable WPS in SoftAP mode
+# Enable/disable WPS in Access Point mode
 DEFAULT_WPS_ENABLED="true"
 
 # Enable/disable Alcatel-Lucent AP Name IE in beacons
@@ -370,8 +370,8 @@ To change these settings at runtime:
 ```c
 #include "softap_config.h"
 
-softap_config_t cfg;
-softap_config_load(&cfg);
+beaconbit_config_t cfg;
+beaconbit_config_load(&cfg);
 
 // Enable/disable WPS
 cfg.wps_enabled = true;  // or false
@@ -383,7 +383,7 @@ cfg.apname_ie_enabled = true;  // or false
 strncpy(cfg.wps_device_name, "NewName-1234", sizeof(cfg.wps_device_name) - 1);
 
 // Save changes
-softap_config_save(&cfg);
+beaconbit_config_save(&cfg);
 
 // Restart to apply
 esp_restart();

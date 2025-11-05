@@ -10,14 +10,14 @@
 #include "cJSON.h"
 #include "softap_env.h"
 
-static const char *TAG = "softap_config";
+static const char *TAG = "beaconbit_config";
 
-esp_err_t softap_config_load(softap_config_t *out_config)
+esp_err_t beaconbit_config_load(beaconbit_config_t *out_config)
 {
     if (!out_config) return ESP_ERR_INVALID_ARG;
 
     nvs_handle_t h;
-    esp_err_t err = nvs_open(SOFTAP_CONFIG_NAMESPACE, NVS_READONLY, &h);
+    esp_err_t err = nvs_open(BEACONBIT_CONFIG_NAMESPACE, NVS_READONLY, &h);
     if (err == ESP_ERR_NVS_NOT_FOUND || err == ESP_ERR_NVS_NOT_INITIALIZED) {
         return ESP_ERR_NVS_NOT_FOUND;
     }
@@ -135,7 +135,7 @@ esp_err_t softap_config_load(softap_config_t *out_config)
     return ESP_OK;
 }
 
-esp_err_t softap_config_save(const softap_config_t *config)
+esp_err_t beaconbit_config_save(const beaconbit_config_t *config)
 {
     if (!config) return ESP_ERR_INVALID_ARG;
 
@@ -175,7 +175,7 @@ esp_err_t softap_config_save(const softap_config_t *config)
     if (!json) return ESP_ERR_NO_MEM;
 
     nvs_handle_t h;
-    esp_err_t err = nvs_open(SOFTAP_CONFIG_NAMESPACE, NVS_READWRITE, &h);
+    esp_err_t err = nvs_open(BEACONBIT_CONFIG_NAMESPACE, NVS_READWRITE, &h);
     if (err != ESP_OK) {
         free(json);
         return err;
@@ -187,11 +187,11 @@ esp_err_t softap_config_save(const softap_config_t *config)
     return err;
 }
 
-void softap_config_generate_default(softap_config_t *out_config)
+void beaconbit_config_generate_default(beaconbit_config_t *out_config)
 {
     if (!out_config) return;
     // Generation rules (assumptions):
-    // - SSID: "ESP32-" + last 3 bytes of MAC
+    // - SSID: "BeaconBit-" + last 3 bytes of MAC
     // - Password: empty (open) if a compile-time flag allows, else random-ish based on MAC
     // - Channel: 1, 6, or 11 based on MAC address (for better distribution)
     // - max_connection: 4

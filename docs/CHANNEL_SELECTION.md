@@ -1,8 +1,8 @@
-# WiFi Channel Selection Feature
+# WiFi Channel Selection
 
 ## Overview
 
-This document describes the WiFi channel selection feature implementation for the ESP32 SoftAP project.
+This document describes the WiFi channel selection feature implementation for the BeaconBit project.
 
 ## Features Implemented
 
@@ -18,7 +18,7 @@ When a device boots for the first time (no NVS configuration exists), it automat
 
 **Implementation Location:**
 
-- `main/softap_config.c` - `softap_config_generate_default()` function
+- `main/softap_config.c` - `beaconbit_config_generate_default()` function
 
 **Testing:**
 A test program was created to validate the distribution algorithm:
@@ -94,7 +94,7 @@ In the 2.4GHz WiFi band, channels overlap with adjacent channels. Channels 1, 6,
 
 ## Configuration Storage
 
-Channel configuration is stored in NVS (Non-Volatile Storage) under the namespace `softap_cfg` as part of the JSON configuration object:
+Channel configuration is stored in NVS (Non-Volatile Storage) under the namespace `beaconbit_cfg` as part of the JSON configuration object:
 
 ```json
 {
@@ -111,7 +111,7 @@ Channel configuration is stored in NVS (Non-Volatile Storage) under the namespac
 ## User Experience Flow
 
 1. **First Boot:** Device auto-selects channel based on MAC address (1, 6, or 11)
-2. **Access Web Interface:** User connects to SoftAP and navigates to `http://192.168.4.1/`
+2. **Access Web Interface:** User connects to access point and navigates to `http://192.168.4.1/`
 3. **View Current Channel:** Configuration table shows current channel
 4. **Change Channel:** User selects new channel from dropdown and clicks "Update Channel"
 5. **Confirmation:** Success message displayed, page automatically reloads
@@ -122,7 +122,7 @@ Channel configuration is stored in NVS (Non-Volatile Storage) under the namespac
 ### Files Modified
 
 1. **main/softap_config.c**
-   - Modified `softap_config_generate_default()` to implement MAC-based channel selection
+   - Modified `beaconbit_config_generate_default()` to implement MAC-based channel selection
    - Algorithm uses last byte of MAC address modulo 3
 
 2. **main/softap_webserver.c**
@@ -164,5 +164,5 @@ Potential improvements for this feature:
 
 - [ESP-IDF WiFi API Documentation](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/network/esp_wifi.html)
 - [WiFi 2.4GHz Channel Information](https://en.wikipedia.org/wiki/List_of_WLAN_channels#2.4_GHz_(802.11b/g/n/ax))
-- ESP32 SoftAP Configuration: `main/softap_config.h`
+- BeaconBit Configuration: `main/softap_config.h`
 - Web Server Implementation: `main/softap_webserver.h`

@@ -4,7 +4,7 @@
 #include "esp_err.h"
 #include "esp_wifi.h"
 
-#define SOFTAP_CONFIG_NAMESPACE "softap_cfg"
+#define BEACONBIT_CONFIG_NAMESPACE "beaconbit_cfg"
 
 typedef struct {
     char ssid[33];
@@ -19,13 +19,13 @@ typedef struct {
     bool wps_enabled; // Enable WPS (Wi-Fi Protected Setup)
     bool apname_ie_enabled; // Enable Alcatel-Lucent AP Name vendor IE in beacons
     wifi_auth_mode_t auth_mode; // WIFI_AUTH_WPA2_PSK or WIFI_AUTH_WPA3_PSK
-} softap_config_t;
+} beaconbit_config_t;
 
 // Load config from NVS. Returns ESP_OK if loaded, ESP_ERR_NVS_NOT_FOUND if not present, or other errors.
-esp_err_t softap_config_load(softap_config_t *out_config);
+esp_err_t beaconbit_config_load(beaconbit_config_t *out_config);
 
 // Save config to NVS (serializes to JSON internally).
-esp_err_t softap_config_save(const softap_config_t *config);
+esp_err_t beaconbit_config_save(const beaconbit_config_t *config);
 
 // Generate default config according to generation rules. Caller should then save if desired.
-void softap_config_generate_default(softap_config_t *out_config);
+void beaconbit_config_generate_default(beaconbit_config_t *out_config);

@@ -1,6 +1,6 @@
 /**
  * @file softap_webserver.c
- * @brief Web server implementation for SoftAP configuration
+ * @brief Web server implementation for BeaconBit configuration
  */
 
 #include "softap_webserver.h"
@@ -10,7 +10,7 @@
 #include "cJSON.h"
 #include <string.h>
 
-static const char *TAG = "softap_webserver";
+static const char *TAG = "beaconbit_webserver";
 static httpd_handle_t server = NULL;
 
 /* HTML page header */
@@ -20,7 +20,7 @@ static const char html_header[] =
     "<head>"
     "<meta charset='UTF-8'>"
     "<meta name='viewport' content='width=device-width, initial-scale=1.0'>"
-    "<title>ESP32 SoftAP Configuration</title>"
+    "<title>BeaconBit Configuration</title>"
     "<style>"
     "body { font-family: Arial, sans-serif; margin: 40px; background-color: #f5f5f5; }"
     "h1 { color: #333; }"
@@ -48,11 +48,11 @@ static const char html_header[] =
     "</head>"
     "<body>"
     "<div class='container'>"
-    "<h1>ESP32 SoftAP Configuration</h1>";
+    "<h1>BeaconBit Configuration</h1>";
 
 static const char html_footer[] =
     "<div class='footer'>"
-    "<p>ESP32 SoftAP Web Interface | Configuration stored in NVS</p>"
+    "<p>BeaconBit Web Interface | Configuration stored in NVS</p>"
     "</div>"
     "</div>"
     "</body>"
@@ -94,8 +94,8 @@ static const char* bandwidth_to_string(uint8_t bandwidth) {
  * @brief Handler for root path - displays current configuration
  */
 static esp_err_t root_get_handler(httpd_req_t *req) {
-    softap_config_t config;
-    esp_err_t ret = softap_config_load(&config);
+    beaconbit_config_t config;
+    esp_err_t ret = beaconbit_config_load(&config);
 
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to load config for display: %s", esp_err_to_name(ret));
@@ -237,8 +237,8 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
  * @brief Handler for /api/config - returns configuration as JSON
  */
 static esp_err_t api_config_get_handler(httpd_req_t *req) {
-    softap_config_t config;
-    esp_err_t ret = softap_config_load(&config);
+    beaconbit_config_t config;
+    esp_err_t ret = beaconbit_config_load(&config);
 
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to load config for API: %s", esp_err_to_name(ret));
@@ -312,8 +312,8 @@ static esp_err_t api_config_post_handler(httpd_req_t *req) {
     }
 
     // Load current config
-    softap_config_t config;
-    esp_err_t err = softap_config_load(&config);
+    beaconbit_config_t config;
+    esp_err_t err = beaconbit_config_load(&config);
     if (err != ESP_OK) {
         cJSON_Delete(root);
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to load current config");
@@ -338,7 +338,7 @@ static esp_err_t api_config_post_handler(httpd_req_t *req) {
     cJSON_Delete(root);
 
     // Save updated config
-    err = softap_config_save(&config);
+    err = beaconbit_config_save(&config);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to save config: %s", esp_err_to_name(err));
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to save configuration");
@@ -378,7 +378,7 @@ static const httpd_uri_t api_config_post_uri = {
     .user_ctx  = NULL
 };
 
-esp_err_t softap_webserver_start(void) {
+esp_err_t beaconbit_webserver_start(void) {
     if (server != NULL) {
         ESP_LOGW(TAG, "Web server already started");
         return ESP_OK;
@@ -408,7 +408,7 @@ esp_err_t softap_webserver_start(void) {
     return ESP_OK;
 }
 
-esp_err_t softap_webserver_stop(void) {
+esp_err_t beaconbit_webserver_stop(void) {
     if (server == NULL) {
         ESP_LOGW(TAG, "Web server not running");
         return ESP_OK;
