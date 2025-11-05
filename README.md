@@ -196,6 +196,12 @@ This project includes patches for upstream ESP-IDF managed components to fix bug
   - Apply changes without restart (if possible)
 - [ ] Add captive portal to redirect clients to the configuration page upon connection
 - [ ] Add "Reset to Defaults" button in web interface
+- [P] Improve iperf stability and usability
+  - [X] Fix upstream accept() bug (done)
+  - [X] Add web interface for starting/stopping tests
+  - [X] Display real-time throughput statistics in web interface
+  - [ ] Display real-time WLAN metrics to go along with the speed throughput statistics.
+  - [ ] Add support for iperf tests that run longer than 30 seconds
 
 ### Medium Priority
 
