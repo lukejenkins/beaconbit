@@ -7,8 +7,10 @@
 #include "softap_config.h"
 #include "esp_log.h"
 #include "esp_system.h"
+#include "esp_timer.h"
 #include "cJSON.h"
 #include <string.h>
+#include <stdlib.h>
 
 static const char *TAG = "beaconbit_webserver";
 static httpd_handle_t server = NULL;
@@ -117,11 +119,16 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
         "</div>";
     httpd_resp_send_chunk(req, info_box, strlen(info_box));
 
-    /* Build configuration table */
-    char buffer[2048];
+    /* Allocate buffer dynamically to avoid stack overflow */
+    char *buffer = malloc(2048);
+    if (buffer == NULL) {
+        ESP_LOGE(TAG, "Failed to allocate buffer for config page");
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
+        return ESP_FAIL;
+    }
     int len;
 
-    len = snprintf(buffer, sizeof(buffer),
+    len = snprintf(buffer, 2048,
         "<h2>Current Configuration</h2>"
         "<table class='config-table'>"
         "<tr><th>Setting</th><th>Value</th></tr>"
@@ -154,8 +161,17 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
 
     httpd_resp_send_chunk(req, buffer, len);
 
+    /* Navigation section */
+    const char nav_section[] =
+        "<h2>Tools</h2>"
+        "<div class='info-box'>"
+        "<a href='/speedtest' style='color: #2196F3; text-decoration: none; font-weight: bold;'>"
+        "⚡ Speed Test - Test your WiFi performance</a>"
+        "</div>";
+    httpd_resp_send_chunk(req, nav_section, strlen(nav_section));
+
     /* Channel selection form */
-    len = snprintf(buffer, sizeof(buffer),
+    len = snprintf(buffer, 2048,
         "<h2>Update Configuration</h2>"
         "<div id='message'></div>"
         "<form id='channelForm'>"
@@ -231,6 +247,7 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
     /* Signal end of response */
     httpd_resp_send_chunk(req, NULL, 0);
 
+    free(buffer);
     ESP_LOGI(TAG, "Configuration page served");
     return ESP_OK;
 }
@@ -281,6 +298,258 @@ static esp_err_t api_config_get_handler(httpd_req_t *req) {
     free(json_str);
 
     ESP_LOGI(TAG, "API config served");
+    return ESP_OK;
+}
+
+/**
+ * @brief State for speed test to prevent concurrent tests
+ */
+static bool speedtest_in_progress = false;
+
+/**
+ * @brief Handler for GET /api/speedtest/download - streams data for download test
+ */
+static esp_err_t speedtest_download_handler(httpd_req_t *req) {
+    if (speedtest_in_progress) {
+        httpd_resp_set_type(req, "application/json");
+        httpd_resp_set_status(req, "503 Service Unavailable");
+        httpd_resp_send(req, "{\"error\":\"Test already in progress\"}", -1);
+        return ESP_FAIL;
+    }
+
+    speedtest_in_progress = true;
+    ESP_LOGI(TAG, "Starting download speed test");
+
+    // Set chunked encoding
+    httpd_resp_set_type(req, "application/octet-stream");
+    httpd_resp_set_hdr(req, "Cache-Control", "no-cache, no-store, must-revalidate");
+
+    // Allocate buffer for test data (8KB chunks)
+    const size_t chunk_size = 8192;
+    uint8_t *buffer = malloc(chunk_size);
+    if (buffer == NULL) {
+        speedtest_in_progress = false;
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
+        return ESP_FAIL;
+    }
+
+    // Fill buffer with pattern data (more efficient than random)
+    for (size_t i = 0; i < chunk_size; i++) {
+        buffer[i] = (uint8_t)(i & 0xFF);
+    }
+
+    // Stream data for 10 seconds
+    int64_t start_time = esp_timer_get_time();
+    int64_t duration_us = 10 * 1000000;  // 10 seconds
+    size_t total_sent = 0;
+    esp_err_t ret = ESP_OK;
+
+    while ((esp_timer_get_time() - start_time) < duration_us) {
+        ret = httpd_resp_send_chunk(req, (char*)buffer, chunk_size);
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "Download test failed to send chunk");
+            break;
+        }
+        total_sent += chunk_size;
+
+        // Small delay to prevent overwhelming the network stack
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+
+    // End chunked response
+    httpd_resp_send_chunk(req, NULL, 0);
+
+    free(buffer);
+    speedtest_in_progress = false;
+
+    int64_t elapsed_us = esp_timer_get_time() - start_time;
+    float mbps = (total_sent * 8.0f) / (elapsed_us / 1000000.0f) / 1000000.0f;
+    ESP_LOGI(TAG, "Download test complete: %zu bytes in %.2f sec = %.2f Mbps",
+             total_sent, elapsed_us / 1000000.0f, mbps);
+
+    return ret;
+}
+
+/**
+ * @brief Handler for POST /api/speedtest/upload - receives data for upload test
+ */
+static esp_err_t speedtest_upload_handler(httpd_req_t *req) {
+    if (speedtest_in_progress) {
+        httpd_resp_set_type(req, "application/json");
+        httpd_resp_set_status(req, "503 Service Unavailable");
+        httpd_resp_send(req, "{\"error\":\"Test already in progress\"}", -1);
+        return ESP_FAIL;
+    }
+
+    speedtest_in_progress = true;
+    ESP_LOGI(TAG, "Starting upload speed test");
+
+    // Buffer for receiving data
+    const size_t buf_size = 8192;
+    char *buffer = malloc(buf_size);
+    if (buffer == NULL) {
+        speedtest_in_progress = false;
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
+        return ESP_FAIL;
+    }
+
+    int64_t start_time = esp_timer_get_time();
+    size_t total_received = 0;
+    int ret;
+
+    // Receive all data from client
+    while (1) {
+        ret = httpd_req_recv(req, buffer, buf_size);
+        if (ret <= 0) {
+            if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
+                continue;
+            }
+            break;
+        }
+        total_received += ret;
+    }
+
+    int64_t elapsed_us = esp_timer_get_time() - start_time;
+    float elapsed_sec = elapsed_us / 1000000.0f;
+    float mbps = (total_received * 8.0f) / elapsed_sec / 1000000.0f;
+
+    ESP_LOGI(TAG, "Upload test complete: %zu bytes in %.2f sec = %.2f Mbps",
+             total_received, elapsed_sec, mbps);
+
+    // Send results as JSON
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddNumberToObject(root, "bytes", total_received);
+    cJSON_AddNumberToObject(root, "duration", elapsed_sec);
+    cJSON_AddNumberToObject(root, "mbps", mbps);
+
+    char *json_str = cJSON_PrintUnformatted(root);
+    cJSON_Delete(root);
+
+    if (json_str != NULL) {
+        httpd_resp_set_type(req, "application/json");
+        httpd_resp_send(req, json_str, strlen(json_str));
+        free(json_str);
+    } else {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "JSON error");
+    }
+
+    free(buffer);
+    speedtest_in_progress = false;
+
+    return ESP_OK;
+}
+
+/**
+ * @brief Handler for GET /api/speedtest/iperf - returns iperf server status
+ */
+static esp_err_t speedtest_iperf_handler(httpd_req_t *req) {
+    cJSON *root = cJSON_CreateObject();
+
+#ifdef CONFIG_BEACONBIT_IPERF_SERVER_ENABLE
+    cJSON_AddBoolToObject(root, "enabled", true);
+    cJSON_AddNumberToObject(root, "port", CONFIG_BEACONBIT_IPERF_SERVER_PORT);
+    cJSON_AddStringToObject(root, "command", "iperf -c 192.168.4.1 -i 1 -t 30");
+#else
+    cJSON_AddBoolToObject(root, "enabled", false);
+    cJSON_AddStringToObject(root, "message", "iperf server not enabled in build");
+#endif
+
+    char *json_str = cJSON_PrintUnformatted(root);
+    cJSON_Delete(root);
+
+    if (json_str == NULL) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "JSON error");
+        return ESP_FAIL;
+    }
+
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, json_str, strlen(json_str));
+    free(json_str);
+
+    return ESP_OK;
+}
+
+/* Speedtest page HTML chunks - stored in flash to avoid stack overflow */
+static const char speedtest_part1[] =
+    "<style>"
+    ".tab-container{margin:20px 0}.tab-buttons{display:flex;border-bottom:2px solid #4CAF50}"
+    ".tab-button{flex:1;padding:12px;background:#f5f5f5;border:none;cursor:pointer;font-size:16px;font-weight:bold;transition:background .3s}"
+    ".tab-button.active{background:#4CAF50;color:white}.tab-button:hover{background:#45a049;color:white}"
+    ".tab-content{display:none;padding:20px}.tab-content.active{display:block}"
+    ".test-button{background:#2196F3;margin:10px 5px}.test-button:hover{background:#0b7dda}.test-button:disabled{background:#ccc}"
+    ".progress-bar{width:100%;height:30px;background:#f0f0f0;border-radius:15px;overflow:hidden;margin:15px 0}"
+    ".progress-fill{height:100%;background:linear-gradient(90deg,#4CAF50,#45a049);transition:width .3s;text-align:center;line-height:30px;color:white;font-weight:bold}"
+    ".result-box{background:#e8f5e9;border-left:4px solid #4CAF50;padding:15px;margin:15px 0;font-size:18px}"
+    ".result-box .speed{font-size:32px;font-weight:bold;color:#2e7d32}"
+    ".code-box{background:#263238;color:#aed581;padding:15px;border-radius:4px;font-family:monospace;margin:10px 0}"
+    ".copy-btn{background:#607d8b;padding:5px 15px;margin-left:10px;font-size:14px}.copy-btn:hover{background:#455a64}"
+    ".status-indicator{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:8px}"
+    ".status-indicator.on{background:#4CAF50;box-shadow:0 0 8px #4CAF50}.status-indicator.off{background:#f44336}"
+    ".nav-link{display:inline-block;margin:10px 0;color:#2196F3;text-decoration:none;font-weight:bold}.nav-link:hover{text-decoration:underline}"
+    "</style><a href='/' class='nav-link'>← Back to Configuration</a><h2>Speed Test</h2><div class='tab-container'>"
+    "<div class='tab-buttons'><button class='tab-button active' onclick='showTab(0)'>Quick Test</button>"
+    "<button class='tab-button' onclick='showTab(1)'>Advanced (iperf)</button></div>"
+    "<div class='tab-content active' id='tab0'><div class='info-box'><strong>Browser-Based Speed Test</strong><br>"
+    "Test your WiFi connection speed directly from your browser. No additional software required!</div>"
+    "<button class='btn test-button' id='downloadBtn' onclick='runDownloadTest()'>Download Test</button>"
+    "<button class='btn test-button' id='uploadBtn' onclick='runUploadTest()'>Upload Test</button>"
+    "<div id='progress' style='display:none'><div class='progress-bar'><div class='progress-fill' id='progressBar'>0%</div></div>"
+    "<p id='progressText'>Preparing test...</p></div><div id='results'></div></div>"
+    "<div class='tab-content' id='tab1'><div class='info-box'><strong>iperf Server</strong><br>"
+    "For more accurate bandwidth testing, use the built-in iperf server with a standard iperf client.</div>"
+    "<div id='iperfStatus'>Loading...</div><div id='iperfInstructions'></div></div></div><script>"
+    "let testRunning=false;function showTab(n){document.querySelectorAll('.tab-button').forEach((b,i)=>b.className=i===n?'tab-button active':'tab-button');"
+    "document.querySelectorAll('.tab-content').forEach((c,i)=>c.className=i===n?'tab-content active':'tab-content');if(n===1)loadIperfStatus();}";
+
+static const char speedtest_part2[] =
+    "function setProgress(p,t){document.getElementById('progressBar').style.width=p+'%';document.getElementById('progressBar').textContent=p+'%';"
+    "document.getElementById('progressText').textContent=t;}function showResult(t,m,d){const r=document.getElementById('results');"
+    "r.innerHTML='<div class=\"result-box\"><strong>'+t+' Test Complete</strong><br><div class=\"speed\">'+m.toFixed(2)+' Mbps</div>"
+    "<small>Duration: '+d.toFixed(2)+' seconds</small></div>'+r.innerHTML;}async function runDownloadTest(){if(testRunning)return;testRunning=true;"
+    "const btn=document.getElementById('downloadBtn');btn.disabled=true;document.getElementById('uploadBtn').disabled=true;"
+    "document.getElementById('progress').style.display='block';setProgress(0,'Starting download test...');try{const start=Date.now();let received=0;"
+    "const resp=await fetch('/api/speedtest/download');const reader=resp.body.getReader();let lastUpdate=start;while(true){"
+    "const{done,value}=await reader.read();if(done)break;received+=value.length;const now=Date.now();const elapsed=(now-start)/1000;"
+    "const pct=Math.min(95,elapsed*10);if(now-lastUpdate>200){const mbps=(received*8)/(elapsed*1000000);setProgress(pct,'Downloading... '+mbps.toFixed(2)+' Mbps');"
+    "lastUpdate=now;}}const duration=(Date.now()-start)/1000;const mbps=(received*8)/(duration*1000000);setProgress(100,'Complete!');"
+    "showResult('Download',mbps,duration);}catch(e){alert('Download test failed: '+e.message);}finally{testRunning=false;btn.disabled=false;"
+    "document.getElementById('uploadBtn').disabled=false;setTimeout(()=>document.getElementById('progress').style.display='none',2000);}}";
+
+static const char speedtest_part3[] =
+    "async function runUploadTest(){if(testRunning)return;testRunning=true;const btn=document.getElementById('uploadBtn');btn.disabled=true;"
+    "document.getElementById('downloadBtn').disabled=true;document.getElementById('progress').style.display='block';setProgress(0,'Starting upload test...');"
+    "try{const size=5*1024*1024;const data=new Uint8Array(size);for(let i=0;i<size;i++)data[i]=i&0xFF;setProgress(20,'Uploading data...');"
+    "const start=Date.now();const resp=await fetch('/api/speedtest/upload',{method:'POST',body:data});const result=await resp.json();"
+    "setProgress(100,'Complete!');showResult('Upload',result.mbps,result.duration);}catch(e){alert('Upload test failed: '+e.message);}finally{"
+    "testRunning=false;btn.disabled=false;document.getElementById('downloadBtn').disabled=false;setTimeout(()=>document.getElementById('progress').style.display='none',2000);}}";
+
+static const char speedtest_part4[] =
+    "async function loadIperfStatus(){try{const resp=await fetch('/api/speedtest/iperf');const data=await resp.json();"
+    "const status=document.getElementById('iperfStatus');const instructions=document.getElementById('iperfInstructions');"
+    "if(data.enabled){status.innerHTML='<p><span class=\"status-indicator on\"></span><strong>iperf server is running</strong></p><p>Port: '+data.port+'</p>';"
+    "instructions.innerHTML='<h3>How to test:</h3><div class=\"info-box\"><strong>1. Install iperf client</strong><br>Linux/Mac: <code>sudo apt install iperf</code> or "
+    "<code>brew install iperf</code><br>Windows: Download from <a href=\"https://iperf.fr/iperf-download.php\" target=\"_blank\">iperf.fr</a></div>"
+    "<div class=\"info-box\"><strong>2. Run test from your computer</strong><br><div class=\"code-box\">$ '+data.command+"
+    "'<button class=\"btn copy-btn\" onclick=\"navigator.clipboard.writeText(\\''+data.command+'\\');alert(\\'Copied!\\');\">Copy</button></div></div>';"
+    "}else{status.innerHTML='<p><span class=\"status-indicator off\"></span><strong>iperf server not enabled</strong></p>';instructions.innerHTML='<p>'+data.message+'</p>';}"
+    "}catch(e){document.getElementById('iperfStatus').innerHTML='<p>Error loading status</p>';}}</script>";
+
+/**
+ * @brief Handler for GET /speedtest - speed test page
+ */
+static esp_err_t speedtest_page_handler(httpd_req_t *req) {
+    httpd_resp_set_type(req, "text/html");
+
+    /* Send chunks */
+    httpd_resp_send_chunk(req, html_header, HTTPD_RESP_USE_STRLEN);
+    httpd_resp_send_chunk(req, speedtest_part1, HTTPD_RESP_USE_STRLEN);
+    httpd_resp_send_chunk(req, speedtest_part2, HTTPD_RESP_USE_STRLEN);
+    httpd_resp_send_chunk(req, speedtest_part3, HTTPD_RESP_USE_STRLEN);
+    httpd_resp_send_chunk(req, speedtest_part4, HTTPD_RESP_USE_STRLEN);
+    httpd_resp_send_chunk(req, html_footer, HTTPD_RESP_USE_STRLEN);
+    httpd_resp_send_chunk(req, NULL, 0);
+
+    ESP_LOGI(TAG, "Speedtest page served");
     return ESP_OK;
 }
 
@@ -380,6 +649,38 @@ static const httpd_uri_t api_config_post_uri = {
     .user_ctx  = NULL
 };
 
+/* URI handler for speedtest page */
+static const httpd_uri_t speedtest_uri = {
+    .uri       = "/speedtest",
+    .method    = HTTP_GET,
+    .handler   = speedtest_page_handler,
+    .user_ctx  = NULL
+};
+
+/* URI handler for speedtest download endpoint */
+static const httpd_uri_t speedtest_download_uri = {
+    .uri       = "/api/speedtest/download",
+    .method    = HTTP_GET,
+    .handler   = speedtest_download_handler,
+    .user_ctx  = NULL
+};
+
+/* URI handler for speedtest upload endpoint */
+static const httpd_uri_t speedtest_upload_uri = {
+    .uri       = "/api/speedtest/upload",
+    .method    = HTTP_POST,
+    .handler   = speedtest_upload_handler,
+    .user_ctx  = NULL
+};
+
+/* URI handler for speedtest iperf status endpoint */
+static const httpd_uri_t speedtest_iperf_uri = {
+    .uri       = "/api/speedtest/iperf",
+    .method    = HTTP_GET,
+    .handler   = speedtest_iperf_handler,
+    .user_ctx  = NULL
+};
+
 esp_err_t beaconbit_webserver_start(void) {
     if (server != NULL) {
         ESP_LOGW(TAG, "Web server already started");
@@ -403,9 +704,14 @@ esp_err_t beaconbit_webserver_start(void) {
     httpd_register_uri_handler(server, &root_uri);
     httpd_register_uri_handler(server, &api_config_uri);
     httpd_register_uri_handler(server, &api_config_post_uri);
+    httpd_register_uri_handler(server, &speedtest_uri);
+    httpd_register_uri_handler(server, &speedtest_download_uri);
+    httpd_register_uri_handler(server, &speedtest_upload_uri);
+    httpd_register_uri_handler(server, &speedtest_iperf_uri);
 
     ESP_LOGI(TAG, "Web server started successfully");
     ESP_LOGI(TAG, "Access the configuration page at http://<ESP32_IP>/");
+    ESP_LOGI(TAG, "Access the speed test page at http://<ESP32_IP>/speedtest");
 
     return ESP_OK;
 }

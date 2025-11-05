@@ -76,6 +76,13 @@ The project includes a built-in web server that provides a user-friendly interfa
   - Maximum connections
   - GTK rekey interval
   - Password (masked for security)
+  - Link to speed test page
+
+- **Speed Test** (`/speedtest`): Browser-based WiFi speed testing
+  - Download test (10 seconds, real-time Mbps display)
+  - Upload test (5MB, instant results)
+  - iperf server status and instructions
+  - No client software required for browser tests
 
 - **JSON API** (`/api/config`): Returns configuration as JSON for programmatic access
 
@@ -141,6 +148,16 @@ The web interface is responsive and works well on both desktop and mobile device
   - Compatible with standard iPerf 2.x clients
   - See `docs/IPERF.md` for usage instructions and performance expectations
   - **Upstream patch applied**: Includes a fix for the `espressif/iperf` component to resolve connection acceptance issues (see below)
+- [X] **Web-Based Speed Test**
+  - Browser-based download and upload speed testing (no client software required)
+  - Real-time progress bars with current speed display
+  - Download test: 10-second streaming test with live Mbps updates
+  - Upload test: 5MB upload with instant results
+  - Tabbed interface with "Quick Test" and "Advanced (iperf)" modes
+  - iperf status display with port information and copy-paste commands
+  - Results history with detailed statistics
+  - See `docs/SPEEDTEST.md` for usage instructions
+  - Access at: `http://192.168.4.1/speedtest`
 
 ## Upstream Component Patches
 
@@ -179,10 +196,11 @@ This project includes patches for upstream ESP-IDF managed components to fix bug
   - Apply changes without restart (if possible)
 - [ ] Add captive portal to redirect clients to the configuration page upon connection
 - [ ] Add "Reset to Defaults" button in web interface
-- [ ] Improve iperf stability and usability
+- [P] Improve iperf stability and usability
   - [X] Fix upstream accept() bug (done)
-  - [ ] Add web interface for starting/stopping tests
-  - [ ] Display real-time throughput statistics in web interface
+  - [X] Add web interface for starting/stopping tests
+  - [X] Display real-time throughput statistics in web interface
+  - [ ] Display real-time WLAN metrics to go along with the speed throughput statistics.
   - [ ] Add support for iperf tests that run longer than 30 seconds
 
 ### Medium Priority
@@ -195,9 +213,6 @@ This project includes patches for upstream ESP-IDF managed components to fix bug
   - Client connect/disconnect events with timestamps
   - Configuration change history
   - Viewable via web interface
-- [P] Speed testing services to measure throughput of the connected clients
-  - [X] iperf server
-  - [ ] Web interface for speed tests
 
 ### Low Priority / Future Enhancements
 
