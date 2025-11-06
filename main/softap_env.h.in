@@ -20,3 +20,6 @@
 
 // Default Alcatel-Lucent AP Name IE enabled flag (true or false)
 #define DEFAULT_APNAME_IE_ENABLED "@DEFAULT_APNAME_IE_ENABLED@"
+
+// Default password/PSK (8-63 chars for WPA, empty for open network)
+#define DEFAULT_PASSWORD "@DEFAULT_PASSWORD@"

@@ -226,13 +226,31 @@ void beaconbit_config_generate_default(beaconbit_config_t *out_config)
         snprintf(out_config->ssid, sizeof(out_config->ssid), "%s%02X%02X", tpl, mac[4], mac[5]);
     }
 
-    // By default make an open network if allowed by Kconfig, else derive a simple password
+    // Use password from .env if specified, otherwise derive from MAC or make it open
+#ifdef DEFAULT_PASSWORD
+    if (strlen(DEFAULT_PASSWORD) > 0) {
+        strncpy(out_config->password, DEFAULT_PASSWORD, sizeof(out_config->password)-1);
+        out_config->password[sizeof(out_config->password)-1] = '\0';
+        out_config->auth_open = false;
+    } else {
+        // Empty DEFAULT_PASSWORD means use fallback logic
+#ifdef CONFIG_ALLOW_OPEN_SOFTAP
+        out_config->password[0] = '\0';
+        out_config->auth_open = true;
+#else
+        snprintf(out_config->password, sizeof(out_config->password), "AP%02X%02X%02X", mac[3], mac[4], mac[5]);
+        out_config->auth_open = (strlen(out_config->password) == 0);
+#endif
+    }
+#else
+    // No DEFAULT_PASSWORD defined, use fallback logic
 #ifdef CONFIG_ALLOW_OPEN_SOFTAP
     out_config->password[0] = '\0';
     out_config->auth_open = true;
 #else
     snprintf(out_config->password, sizeof(out_config->password), "AP%02X%02X%02X", mac[3], mac[4], mac[5]);
     out_config->auth_open = (strlen(out_config->password) == 0);
+#endif
 #endif
 
     // Set default auth mode from environment variable
